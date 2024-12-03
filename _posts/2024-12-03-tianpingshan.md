@@ -3,7 +3,7 @@ title: "天平山"
 date: 2024-12-03 18:26:39 +0800
 permalink: tianpingshan
 ---
-天平山游览记录
+天平山游览记录（时间：2024年11月30日下午大约四点左右抵达）
 抵达木渎地铁站
 ![IMG_20241130_153709](https://github.com/user-attachments/assets/aa8bc849-a59e-4f24-a073-b52373694363)
 进入天平山景区，看到了红枫和湖中倒影
