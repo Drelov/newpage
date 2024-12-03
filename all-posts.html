@@ -2,28 +2,124 @@
 layout: default
 title: All Posts
 ---
-<h1>所有博客文章</h1>
-<!-- 在页面顶部添加一个按钮 -->
-<a href="https://github.com/Drelov/newpage/new/main/_posts" class="button">跳转至指定页面</a>
-<ul>
-  {% for post in site.posts %}
-    <li>
-      <a href="/newpage{{ post.url }}">{{ post.title }}</a> - {{ post.date | date: "%Y-%m-%d %H:%M:%S " }}
-    </li>
-  {% endfor %}
-</ul>
-<!-- 添加样式来美化按钮 -->
+<div class="container">
+  <h1>所有博客文章</h1>
+
+  <!-- 跳转按钮 -->
+  <a href="https://github.com/Drelov/newpage/new/main/_posts" class="button">跳转至指定页面</a>
+
+  <!-- 博客列表 -->
+  <ul class="post-list">
+    {% for post in site.posts %}
+      <li class="post-item">
+        <a href="/newpage{{ post.url }}" class="post-link">{{ post.title }}</a>
+        <span class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- 美化样式 -->
 <style>
+  /* 页面容器 */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+  }
+
+  /* 页面标题 */
+  h1 {
+    text-align: center;
+    color: #333;
+    font-size: 36px;
+    margin-bottom: 40px;
+  }
+
+  /* 跳转按钮 */
   .button {
     display: inline-block;
-    padding: 10px 20px;
-    margin: 10px 0;
+    padding: 12px 25px;
     background-color: #4CAF50;
     color: white;
     text-decoration: none;
     border-radius: 5px;
+    font-size: 18px;
+    text-align: center;
+    margin: 0 auto;
+    display: block;
+    width: 200px;
+    transition: background-color 0.3s ease;
   }
+
+  /* 按钮悬停效果 */
   .button:hover {
     background-color: #45a049;
+  }
+
+  /* 博客列表样式 */
+  .post-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 30px;
+  }
+
+  /* 博客列表项 */
+  .post-item {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* 鼠标悬停效果 */
+  .post-item:hover {
+    background-color: #f0f0f0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 博客标题样式 */
+  .post-link {
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  /* 博客标题悬停效果 */
+  .post-link:hover {
+    color: #4CAF50;
+  }
+
+  /* 日期显示样式 */
+  .post-date {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #888;
+  }
+
+  /* 响应式设计 */
+  @media screen and (max-width: 768px) {
+    .container {
+      padding: 10px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 15px 0;
+    }
+
+    .post-list {
+      padding-left: 20px;
+    }
+
+    .post-item {
+      padding: 12px;
+    }
   }
 </style>
