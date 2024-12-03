@@ -4,7 +4,7 @@ title: Home
 ---
 <div style="text-align: center; margin-top: 50px;">
   <h1>欢迎访问博客</h1>
-  <form id="login-form" action="/all-posts.html" method="GET">
+  <form id="login-form" action="/newpage/all-posts.html" method="GET">
     <label for="username">用户名:</label>
     <input type="text" id="username" name="username" required><br>
     <label for="password">密码:</label>
