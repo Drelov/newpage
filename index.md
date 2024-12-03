@@ -1,1 +1,25 @@
+---
+layout: default
+title: Home
+---
+<div style="text-align: center; margin-top: 50px;">
+  <h1>欢迎访问博客</h1>
+  <form id="login-form" action="/newpage/all-posts.html" method="GET">
+    <label for="username">用户名:</label>
+    <input type="text" id="username" name="username" required><br>
+    <label for="password">密码:</label>
+    <input type="password" id="password" name="password" required><br><br>
+    <button type="submit">登录</button>
+  </form>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username !== 'admin' || password !== 'password123') { // 修改为你的用户名和密码
+        alert('用户名或密码错误');
+        e.preventDefault();
+      }
+    });
+  </script>
+</div>
 
