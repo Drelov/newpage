@@ -2,12 +2,6 @@ theme: minima
 permalink: /newpage/:title.html
 timezone: "Asia/Shanghai"
 title: Drelo
-plugins:
-  - jekyll-seo-tag
-  - jekyll-sitemap
-  - jekyll-paginate
-  - jekyll-archives
-  - jekyll-feed
-  - jekyll-last-modified-at
-  - jekyll-sass-converter
-  - jekyll-toc
+sass:
+  sass_dir: _sass
+  style: compressed
