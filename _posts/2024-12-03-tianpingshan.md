@@ -1,4 +1,5 @@
 ---
+layout: post
 title: "天平山"
 date: 2024-12-03 18:26:39 +0800
 permalink: tianpingshan
