@@ -8,7 +8,7 @@ title: All Posts
 <ul>
   {% for post in site.posts %}
     <li>
-      <a href="/newpage{{ post.url }}">{{ post.title }}</a> - {{ post.date | date: "%Y-%m-%d" }}
+      <a href="/newpage{{ post.url }}">{{ post.title }}</a> - {{ post.date | date: "%Y-%m-%d %H:%M" }}
     </li>
   {% endfor %}
 </ul>
