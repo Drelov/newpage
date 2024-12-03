@@ -3,6 +3,8 @@ layout: default
 title: All Posts
 ---
 <h1>所有博客文章</h1>
+<!-- 在页面顶部添加一个按钮 -->
+<a href="https://github.com/Drelov/newpage/new/main/_posts" class="button">跳转至指定页面</a>
 <ul>
   {% for post in site.posts %}
     <li>
@@ -10,3 +12,18 @@ title: All Posts
     </li>
   {% endfor %}
 </ul>
+<!-- 添加样式来美化按钮 -->
+<style>
+  .button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 10px 0;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+  }
+  .button:hover {
+    background-color: #45a049;
+  }
+</style>
