@@ -5,11 +5,11 @@ permalink: tianpingshan
 ---
 天平山游览记录
 抵达木渎地铁站
-![IMG_20241130_161308](https://github.com/user-attachments/assets/b8f9525e-150a-429c-b39e-20f9475458c3)
+![IMG_20241130_153709](https://github.com/user-attachments/assets/aa8bc849-a59e-4f24-a073-b52373694363)
 进入天平山景区，看到了红枫和湖中倒影
 ![IMG_20241130_160742](https://github.com/user-attachments/assets/d25f9c79-c149-4d07-b89c-a48800d7937f)
 继续向前走，由于是下午接近傍晚的时候，林子中的阳光映照的枫叶和林子非常舒服
-![IMG_20241130_153709](https://github.com/user-attachments/assets/aa8bc849-a59e-4f24-a073-b52373694363)
+![IMG_20241130_161308](https://github.com/user-attachments/assets/b8f9525e-150a-429c-b39e-20f9475458c3)
 开始爬山了，爬到大概三分之一的位置，这个景色是真的不错啊
 ![IMG_20241130_162647](https://github.com/user-attachments/assets/607b4bf1-231e-4a17-a014-521e13dbbf42)
 ![IMG_20241130_162708](https://github.com/user-attachments/assets/15376ce6-1570-4851-aefb-c71c531939a1)
