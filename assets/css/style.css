@@ -189,3 +189,23 @@ pre .copy-btn i {
   pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
 
+/* 编辑按钮样式 */
+.edit-btn {
+  background-color: #4CAF50; /* 绿色背景 */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.edit-btn:hover {
+  background-color: #45a049; /* 悬停时变为稍深的绿色 */
+}
+
+.edit-btn i {
+  margin-right: 8px;
+}
+
