@@ -161,33 +161,22 @@ pre .copy-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #4CAF50;
+  background-color: transparent;
   color: white;
-  padding: 5px 10px;
-  font-size: 0.9rem;
   border: none;
-  border-radius: 5px;
   cursor: pointer;
+  font-size: 1.2rem; /* 控制图标的大小 */
   transition: background-color 0.3s;
 }
 
 pre .copy-btn:hover {
-  background-color: #45a049;
+  color: #4CAF50; /* 鼠标悬停时改变颜色 */
 }
 
 pre .copy-btn:focus {
   outline: none;
 }
 
-/* 代码行高亮效果 */
-pre code {
-  display: block;
-  padding: 0;
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+pre .copy-btn i {
+  pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
-
-
-
-
