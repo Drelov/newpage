@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>{{ page.title }} - {{ site.title }}</title>
-  <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 </head>
 <body>
   <header>
     <nav>
-      <a href="{{ "/" | relative_url }}">首页</a>
-      <a href="{{ "/all-posts.html" | relative_url }}">所有博客</a>
+      <a href="{{ '/' | relative_url }}">首页</a>
+      <a href="{{ '/all-posts.html' | relative_url }}">所有博客</a>
     </nav>
   </header>
 
@@ -21,9 +21,30 @@
       <p class="post-meta">
         发布于 {{ page.date | date: "%Y-%m-%d" }}
       </p>
-      
+
       <div class="post-content">
         {{ content }}
+
+        <!-- 示例代码块（可以在markdown或html中直接添加） -->
+        <pre>
+          <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+          <code>
+#include <iostream>
+int main() {
+    std::cout << "Hello, GitHub Pages!" << std::endl;
+    return 0;
+}
+          </code>
+        </pre>
+
+        <!-- 你可以根据需要插入多个代码块 -->
+        <pre>
+          <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+          <code>
+def hello():
+    print("Hello, World!")
+          </code>
+        </pre>
       </div>
     </article>
   </main>
@@ -31,5 +52,26 @@
   <footer>
     <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
   </footer>
+
+  <!-- JavaScript 复制功能 -->
+  <script>
+    function copyCode(button) {
+      // 获取代码块内容
+      const code = button.nextElementSibling.innerText;
+      // 创建一个临时的文本框并复制
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      // 提示用户复制成功
+      button.innerText = "已复制";
+      setTimeout(() => {
+        button.innerText = "复制代码";
+      }, 2000);
+    }
+  </script>
 </body>
 </html>
