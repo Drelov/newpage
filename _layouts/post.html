@@ -6,6 +6,8 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>{{ page.title }} - {{ site.title }}</title>
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <!-- 引入 Font Awesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
   <header>
@@ -34,19 +36,21 @@
 
   <!-- JavaScript 动态生成复制按钮 -->
   <script>
-    // 获取所有的代码块（pre标签）
     document.querySelectorAll('pre').forEach((pre) => {
-      // 创建复制按钮
+      // 创建复制按钮，使用 Font Awesome 图标
       const button = document.createElement('button');
       button.classList.add('copy-btn');
-      button.innerText = '复制代码';
       
+      // 创建 Font Awesome 图标
+      const icon = document.createElement('i');
+      icon.classList.add('fas', 'fa-copy'); // 使用复制图标
+      button.appendChild(icon);
+
       // 将按钮插入到代码块的顶部
       pre.insertBefore(button, pre.firstChild);
 
       // 绑定复制功能
       button.addEventListener('click', () => {
-        // 获取代码块内容
         const code = pre.querySelector('code').innerText;
 
         // 创建一个临时文本框来复制内容
@@ -58,9 +62,9 @@
         document.body.removeChild(textArea);
 
         // 改变按钮提示文本
-        button.innerText = '已复制';
+        button.innerHTML = '<i class="fas fa-check"></i>'; // 修改为复制成功的图标
         setTimeout(() => {
-          button.innerText = '复制代码';
+          button.innerHTML = '<i class="fas fa-copy"></i>'; // 恢复为复制图标
         }, 2000);
       });
     });
