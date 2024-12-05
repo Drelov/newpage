@@ -24,27 +24,6 @@
 
       <div class="post-content">
         {{ content }}
-
-        <!-- 示例代码块（可以在markdown或html中直接添加） -->
-        <pre>
-          <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
-          <code>
-#include <iostream>
-int main() {
-    std::cout << "Hello, GitHub Pages!" << std::endl;
-    return 0;
-}
-          </code>
-        </pre>
-
-        <!-- 你可以根据需要插入多个代码块 -->
-        <pre>
-          <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
-          <code>
-def hello():
-    print("Hello, World!")
-          </code>
-        </pre>
       </div>
     </article>
   </main>
@@ -53,25 +32,39 @@ def hello():
     <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
   </footer>
 
-  <!-- JavaScript 复制功能 -->
+  <!-- JavaScript 动态生成复制按钮 -->
   <script>
-    function copyCode(button) {
-      // 获取代码块内容
-      const code = button.nextElementSibling.innerText;
-      // 创建一个临时的文本框并复制
-      const textArea = document.createElement("textarea");
-      textArea.value = code;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
+    // 获取所有的代码块（pre标签）
+    document.querySelectorAll('pre').forEach((pre) => {
+      // 创建复制按钮
+      const button = document.createElement('button');
+      button.classList.add('copy-btn');
+      button.innerText = '复制代码';
       
-      // 提示用户复制成功
-      button.innerText = "已复制";
-      setTimeout(() => {
-        button.innerText = "复制代码";
-      }, 2000);
-    }
+      // 将按钮插入到代码块的顶部
+      pre.insertBefore(button, pre.firstChild);
+
+      // 绑定复制功能
+      button.addEventListener('click', () => {
+        // 获取代码块内容
+        const code = pre.querySelector('code').innerText;
+
+        // 创建一个临时文本框来复制内容
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        // 改变按钮提示文本
+        button.innerText = '已复制';
+        setTimeout(() => {
+          button.innerText = '复制代码';
+        }, 2000);
+      });
+    });
   </script>
+
 </body>
 </html>
