@@ -24,7 +24,13 @@
         发布于 {{ page.date | date: "%Y-%m-%d" }}
       </p>
 
+      <!-- 添加跳转按钮 -->
       <div class="post-content">
+        <!-- 动态生成跳转按钮 -->
+        <button class="edit-btn" id="edit-btn">
+          <i class="fas fa-edit"></i> 编辑此文章
+        </button>
+
         {{ content }}
       </div>
     </article>
@@ -34,7 +40,7 @@
     <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
   </footer>
 
-  <!-- JavaScript 动态生成复制按钮 -->
+  <!-- JavaScript 动态生成复制按钮和编辑跳转按钮 -->
   <script>
     document.querySelectorAll('pre').forEach((pre) => {
       // 创建复制按钮，使用 Font Awesome 图标
@@ -68,6 +74,18 @@
         }, 2000);
       });
     });
+
+    // 动态生成编辑按钮的链接
+    const editButton = document.getElementById('edit-btn');
+    if (editButton) {
+      const pageName = '{{ page.name }}';  // 获取当前页面的文件名（例如：2024-12-05-ei.md）
+      const githubEditUrl = `https://github.com/Drelov/newpage/edit/main/_posts/${pageName}`;
+
+      editButton.addEventListener('click', () => {
+        // 跳转到 GitHub 的编辑页面
+        window.location.href = githubEditUrl;
+      });
+    }
   </script>
 
 </body>
