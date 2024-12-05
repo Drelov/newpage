@@ -194,7 +194,7 @@ button.edit-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #4CAF50; /* 按钮背景绿色 */
+  background-color: #4CAF50  !important; /* 按钮背景绿色 */
   color: #fff; /* 按钮文字颜色 */
   border: none;
   border-radius: 50%; /* 圆形按钮 */
@@ -206,7 +206,7 @@ button.edit-btn {
 }
 
 button.edit-btn:hover {
-  background-color: #45a049; /* 悬停时背景颜色变深 */
+  background-color: #45a049  !important; /* 悬停时背景颜色变深 */
   transform: scale(1.1); /* 悬停时放大按钮 */
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影效果 */
 }
