@@ -161,22 +161,31 @@ pre .copy-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: transparent;
-  color: white;
+  background-color: transparent; /* 背景透明 */
+  color: #f5f5f5; /* 图标颜色 */
   border: none;
   cursor: pointer;
-  font-size: 1.2rem; /* 控制图标的大小 */
-  transition: background-color 0.3s;
+  font-size: 1.4rem; /* 控制图标的大小 */
+  transition: color 0.3s ease; /* 悬停时的颜色变化 */
+  padding: 5px;
+  border-radius: 5px; /* 圆角按钮 */
 }
 
+/* 鼠标悬停时改变颜色 */
 pre .copy-btn:hover {
-  color: #4CAF50; /* 鼠标悬停时改变颜色 */
+  color: #4CAF50; /* 悬停时颜色变化为绿色 */
+}
+
+/* 鼠标点击时改变颜色 */
+pre .copy-btn:active {
+  color: #388E3C; /* 点击时颜色变化为更深的绿色 */
 }
 
 pre .copy-btn:focus {
-  outline: none;
+  outline: none; /* 去掉焦点轮廓 */
 }
 
 pre .copy-btn i {
   pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
+
