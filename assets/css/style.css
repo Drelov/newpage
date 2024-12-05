@@ -161,7 +161,7 @@ pre .copy-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: transparent; /* 背景透明 */
+  background-color: transparent  !important; /* 背景透明 */
   color: #f5f5f5; /* 图标颜色 */
   border: none;
   cursor: pointer;
