@@ -134,12 +134,16 @@ footer p {
   }
 }
 pre {
-    background-color: #f5f5f5;
-    padding: 10px;
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 5px;
+  overflow-x: auto;
 }
 
 code {
-    font-family: "Courier New", monospace;
+  font-family: "Courier New", monospace;
+  color: #333;
 }
+
 
 
