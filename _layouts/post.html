@@ -19,7 +19,7 @@
 
   <main>
     <article class="post">
-      <h1>{{ page.path }}</h1>
+      <h1>{{ page.title }}</h1>
       <p class="post-meta">
         发布于 {{ page.date | date: "%Y-%m-%d" }}
       </p>
@@ -78,8 +78,8 @@
     // 动态生成编辑按钮的链接
     const editButton = document.getElementById('edit-btn');
     if (editButton) {
-      const pageName = '{{ page.name }}';  // 获取当前页面的文件名（例如：2024-12-05-ei.md）
-      const githubEditUrl = `https://github.com/Drelov/newpage/edit/main/_posts/${pageName}`;
+      const pageName = '{{ page.path }}';  // 获取当前页面的文件名（例如：2024-12-05-ei.md）
+      const githubEditUrl = `https://github.com/Drelov/newpage/edit/main/${pageName}`;
 
       editButton.addEventListener('click', () => {
         // 跳转到 GitHub 的编辑页面
