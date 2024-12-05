@@ -189,23 +189,28 @@ pre .copy-btn i {
   pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
 
-/* 编辑按钮样式 */
-.edit-btn {
-  background-color: #4CAF50; /* 绿色背景 */
-  color: white;
+/* 编辑按钮的样式 */
+button.edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #4CAF50; /* 按钮背景绿色 */
+  color: #fff; /* 按钮文字颜色 */
   border: none;
-  padding: 10px 20px;
-  font-size: 1.2rem;
+  border-radius: 50%; /* 圆形按钮 */
+  font-size: 1.5rem; /* 图标大小 */
+  padding: 10px;
   cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
 }
 
-.edit-btn:hover {
-  background-color: #45a049; /* 悬停时变为稍深的绿色 */
+button.edit-btn:hover {
+  background-color: #45a049; /* 悬停时背景颜色变深 */
+  transform: scale(1.1); /* 悬停时放大按钮 */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影效果 */
 }
 
-.edit-btn i {
-  margin-right: 8px;
+button.edit-btn i {
+  pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
-
