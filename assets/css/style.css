@@ -133,4 +133,13 @@ footer p {
     margin: 0 1rem;
   }
 }
+pre {
+    background-color: #f5f5f5;
+    padding: 10px;
+}
+
+code {
+    font-family: "Courier New", monospace;
+}
+
 
