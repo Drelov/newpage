@@ -268,7 +268,7 @@ details[open] summary {
 }
 
 details[open] summary:hover {
-  background-color: #e1e1e1; /* 鼠标悬停时背景色 */
+  background-color: transparent  !important; /* 鼠标悬停时背景色 */
 }
 
 /* 详情内容展开时样式 */
