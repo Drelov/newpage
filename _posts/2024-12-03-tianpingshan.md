@@ -2,6 +2,7 @@
 layout: post
 title: "天平山"
 date: 2024-12-03 18:26:39 +0800
+tag: 游记
 permalink: tianpingshan
 ---
 天平山游览记录（时间：2024年11月30日下午大约四点左右抵达）
