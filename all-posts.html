@@ -21,27 +21,29 @@ title: 所有博客文章
   <!-- 博客列表 -->
   <section class="post-list">
     <ul>
-      {% for post in site.posts %}
-        {% if post.tags %}
-          {% for tag in post.tags %}
-            <li class="post-item" data-tags="{{ post.tags | join: ',' }}">
-              <a href="/newpage{{ post.url }}" class="post-link">
-                <h3>{{ post.title }}</h3>
-              </a>
-              <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
-            </li>
-          {% endfor %}
-        {% else %}
-          <!-- 没有标签的文章归类到 "其他" -->
-          <li class="post-item" data-tags="other">
-            <a href="/newpage{{ post.url }}" class="post-link">
-              <h3>{{ post.title }}</h3>
-            </a>
-            <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
-          </li>
-        {% endif %}
+  {% for post in site.posts %}
+    {% assign has_tags = post.tags | size > 0 %} <!-- 判断是否有标签 -->
+    {% if has_tags %}
+      {% for tag in post.tags %}
+        <li class="post-item" data-tags="{{ post.tags | join: ',' }}">
+          <a href="/newpage{{ post.url }}" class="post-link">
+            <h3>{{ post.title }}</h3>
+          </a>
+          <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+        </li>
       {% endfor %}
-    </ul>
+    {% else %}
+      <!-- 没有标签的文章 -->
+      <li class="post-item" data-tags="other">
+        <a href="/newpage{{ post.url }}" class="post-link">
+          <h3>{{ post.title }}</h3>
+        </a>
+        <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+      </li>
+    {% endif %}
+  {% endfor %}
+</ul>
+
   </section>
 </div>
 
