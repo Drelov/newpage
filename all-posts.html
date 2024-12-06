@@ -135,6 +135,7 @@ title: 所有博客文章
 
         // 显示匹配的文章，隐藏其他文章
         posts.forEach(post => {
+          // 如果选择的是全部标签，则显示所有文章
           if (tag === "all") {
             post.classList.add("active"); // 显示所有文章
           } else if (post.getAttribute("data-tag") === tag) {
