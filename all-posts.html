@@ -1,22 +1,47 @@
 ---
 layout: default
-title: All Posts
+title: 所有博客文章
 ---
 <div class="container">
-  <h1>所有博客文章</h1>
+  <header>
+    <h1>所有博客文章</h1>
+    <nav>
+      <a href="https://github.com/Drelov/newpage/new/main/_posts" class="button">记录</a>
+    </nav>
+  </header>
 
-  <!-- 跳转按钮 -->
-  <a href="https://github.com/Drelov/newpage/new/main/_posts" class="button">记录</a>
+  <section class="categories">
+    <h2>分类</h2>
+    <ul>
+      <!-- 假设你有一个分类数组，可以遍历显示每个分类 -->
+      {% for category in site.categories %}
+        <li><a href="/category/{{ category[0] | slugify }}">{{ category[0] }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
 
-  <!-- 博客列表 -->
-  <ul class="post-list">
-    {% for post in site.posts %}
-      <li class="post-item">
-        <a href="/newpage{{ post.url }}" class="post-link">{{ post.title }}</a>
-        <span class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</span>
-      </li>
-    {% endfor %}
-  </ul>
+  <section class="tags">
+    <h2>标签</h2>
+    <ul>
+      <!-- 假设你有一个标签数组，可以遍历显示每个标签 -->
+      {% for tag in site.tags %}
+        <li><a href="/tag/{{ tag[0] | slugify }}">{{ tag[0] }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="post-list">
+    <ul>
+      {% for post in site.posts %}
+        <li class="post-item">
+          <a href="{{ post.url }}" class="post-link">
+            <h3>{{ post.title }}</h3>
+          </a>
+          <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
 </div>
 
 <!-- 美化样式 -->
@@ -30,11 +55,10 @@ title: All Posts
   }
 
   /* 页面标题 */
-  h1 {
+  h1, h2 {
     text-align: center;
     color: #333;
-    font-size: 36px;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
   }
 
   /* 跳转按钮 */
@@ -58,6 +82,31 @@ title: All Posts
     background-color: #45a049;
   }
 
+  /* 分类和标签 */
+  .categories, .tags {
+    margin-bottom: 30px;
+  }
+
+  .categories ul, .tags ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+
+  .categories li, .tags li {
+    display: inline-block;
+    margin-right: 15px;
+  }
+
+  .categories a, .tags a {
+    color: #4CAF50;
+    text-decoration: none;
+    font-size: 16px;
+  }
+
+  .categories a:hover, .tags a:hover {
+    text-decoration: underline;
+  }
+
   /* 博客列表样式 */
   .post-list {
     list-style-type: none;
@@ -65,9 +114,8 @@ title: All Posts
     margin-top: 30px;
   }
 
-  /* 博客列表项 */
   .post-item {
-    padding: 15px;
+    padding: 20px;
     border: 1px solid #ddd;
     border-radius: 10px;
     margin-bottom: 15px;
@@ -75,27 +123,23 @@ title: All Posts
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
 
-  /* 鼠标悬停效果 */
   .post-item:hover {
     background-color: #f0f0f0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 
-  /* 博客标题样式 */
   .post-link {
     color: #333;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
     text-decoration: none;
     transition: color 0.3s ease;
   }
 
-  /* 博客标题悬停效果 */
   .post-link:hover {
     color: #4CAF50;
   }
 
-  /* 日期显示样式 */
   .post-date {
     display: block;
     margin-top: 10px;
@@ -103,7 +147,6 @@ title: All Posts
     color: #888;
   }
 
-  /* 响应式设计 */
   @media screen and (max-width: 768px) {
     .container {
       padding: 10px;
