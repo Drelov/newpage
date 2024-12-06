@@ -24,7 +24,7 @@ title: 所有博客文章
       {% for post in site.posts %}
         {% if post.tags %}
           {% for tag in post.tags %}
-            <li class="post-item" data-tag="{{ tag }}">
+            <li class="post-item" data-tags="{{ post.tags | join: ',' }}">
               <a href="/newpage{{ post.url }}" class="post-link">
                 <h3>{{ post.title }}</h3>
               </a>
@@ -33,7 +33,7 @@ title: 所有博客文章
           {% endfor %}
         {% else %}
           <!-- 没有标签的文章归类到 "其他" -->
-          <li class="post-item" data-tag="other">
+          <li class="post-item" data-tags="other">
             <a href="/newpage{{ post.url }}" class="post-link">
               <h3>{{ post.title }}</h3>
             </a>
@@ -44,10 +44,6 @@ title: 所有博客文章
     </ul>
   </section>
 </div>
-
-  <footer>
-    <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
-  </footer>
 
 <!-- 样式 -->
 <style>
@@ -138,13 +134,15 @@ title: 所有博客文章
 
         // 显示匹配的文章，隐藏其他文章
         posts.forEach(post => {
-          // 如果选择的是全部标签，则显示所有文章
+          const postTags = post.getAttribute("data-tags").split(',');
+
+          // 如果选择的是 "全部" 标签，则显示所有文章
           if (tag === "all") {
             post.classList.add("active"); // 显示所有文章
-          } else if (tag === "other" && post.getAttribute("data-tag") === "other") {
+          } else if (tag === "other" && postTags.includes("other")) {
             post.classList.add("active"); // 显示没有标签的文章
-          } else if (post.getAttribute("data-tag") === tag) {
-            post.classList.add("active"); // 显示特定标签的文章
+          } else if (postTags.includes(tag)) {
+            post.classList.add("active"); // 显示具有当前标签的文章
           } else {
             post.classList.remove("active"); // 隐藏不匹配的文章
           }
