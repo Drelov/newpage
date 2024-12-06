@@ -33,6 +33,7 @@ title: 所有博客文章
             </li>
           {% endfor %}
         {% else %}
+          <!-- 没有标签的文章归类到 "其他" -->
           <li class="post-item" data-tag="other">
             <a href="{{ post.url }}" class="post-link">
               <h3>{{ post.title }}</h3>
@@ -135,11 +136,11 @@ title: 所有博客文章
         // 显示匹配的文章，隐藏其他文章
         posts.forEach(post => {
           if (tag === "all") {
-            post.classList.add("active");
+            post.classList.add("active"); // 显示所有文章
           } else if (post.getAttribute("data-tag") === tag) {
-            post.classList.add("active");
+            post.classList.add("active"); // 显示特定标签的文章
           } else {
-            post.classList.remove("active");
+            post.classList.remove("active"); // 隐藏不匹配的文章
           }
         });
       });
