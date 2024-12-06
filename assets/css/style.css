@@ -215,3 +215,64 @@ button.edit-btn:hover {
 button.edit-btn i {
   pointer-events: none; /* 防止点击图标时触发其他事件 */
 }
+
+/* 视频容器样式 */
+.video-container {
+  position: relative;
+  overflow: hidden;
+  background-color: #000; /* 视频背景颜色，确保视频清晰可见 */
+  border-radius: 8px; /* 圆角 */
+  margin: 1.5rem 0; /* 视频上下间距 */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 视频阴影 */
+}
+
+/* 调整视频样式 */
+video {
+  max-width: 100%; /* 使视频宽度自适应容器 */
+  height: auto; /* 保持视频的纵横比 */
+  display: block;
+  border-radius: 8px; /* 视频边角圆滑 */
+}
+
+/* 视频控制条样式 */
+video::-webkit-media-controls-panel {
+  background-color: #333; /* 自定义控制条背景颜色 */
+  border-radius: 6px;
+}
+
+video::-webkit-media-controls-play-button {
+  background-color: #4CAF50; /* 播放按钮背景颜色 */
+  border-radius: 50%; /* 按钮圆形 */
+}
+
+video::-webkit-media-controls-volume-slider {
+  background-color: #f4f4f4; /* 音量滑块背景颜色 */
+}
+
+video::-webkit-media-controls-mute-button {
+  background-color: #f44336; /* 静音按钮背景颜色 */
+  border-radius: 50%;
+}
+
+/* 控制条上的按钮悬停效果 */
+video:hover::-webkit-media-controls-play-button {
+  background-color: #45a049;
+}
+
+/* 详情项的下拉按钮样式 */
+details[open] summary {
+  background-color: #f4f4f4; /* 下拉项背景色 */
+  border-radius: 10px;
+  padding: 1rem; /* 调整 padding */
+  cursor: pointer;
+}
+
+details[open] summary:hover {
+  background-color: #e1e1e1; /* 鼠标悬停时背景色 */
+}
+
+/* 详情内容展开时样式 */
+details[open] .video-container {
+  padding: 1rem; /* 增加内边距 */
+}
+
