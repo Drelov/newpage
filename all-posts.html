@@ -138,6 +138,8 @@ title: 所有博客文章
           // 如果选择的是全部标签，则显示所有文章
           if (tag === "all") {
             post.classList.add("active"); // 显示所有文章
+          } else if (tag === "other" && post.getAttribute("data-tag") === "other") {
+            post.classList.add("active"); // 显示没有标签的文章
           } else if (post.getAttribute("data-tag") === tag) {
             post.classList.add("active"); // 显示特定标签的文章
           } else {
