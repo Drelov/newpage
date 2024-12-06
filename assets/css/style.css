@@ -232,6 +232,7 @@ video {
   height: auto; /* 保持视频的纵横比 */
   display: block;
   border-radius: 8px; /* 视频边角圆滑 */
+  z-index: 1;
 }
 
 /* 视频控制条样式 */
@@ -268,7 +269,7 @@ details[open] summary {
 }
 
 details[open] summary:hover {
-  background-color: transparent  !important; /* 鼠标悬停时背景色 */
+  background-color: rgba(0,0,0,0.1)  !important; /* 鼠标悬停时背景色 */
 }
 
 /* 详情内容展开时样式 */
