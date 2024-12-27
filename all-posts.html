@@ -29,7 +29,7 @@ title: 所有博客文章
           <a href="/newpage{{ post.url }}" class="post-link">
             <h3>{{ post.title }}</h3>
           </a>
-          <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+          <p class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</p>
         </li>
       {% endfor %}
     {% else %}
@@ -38,7 +38,7 @@ title: 所有博客文章
         <a href="/newpage{{ post.url }}" class="post-link">
           <h3>{{ post.title }}</h3>
         </a>
-        <p class="post-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+        <p class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</p>
       </li>
     {% endif %}
   {% endfor %}
