@@ -240,7 +240,7 @@
     <div id="contextMenu" class="context-menu">
         <div><button onclick="editUrl()">编辑</button></div>
         <div><button onclick="deleteUrl()">删除</button></div>
-        <div><button onclick="openInNewTab()">新标签页打开</button></div>
+        <div><button onclick="openCurrentTab()">本标签页打开</button></div>
     </div>
 
     <script>
@@ -350,6 +350,10 @@
         function openInNewTab() {
             window.open(currentButton.getAttribute('data-link'), '_blank');
         }
+        // 在本网页打开网址
+        function openCurrentTab(){
+            window.location.href = url.link;
+        }
 
         // 保存网址按钮到 localStorage
         function saveUrls() {
@@ -375,7 +379,7 @@
                     urlButton.textContent = url.name;
                     urlButton.setAttribute('data-link', url.link);
                     urlButton.onclick = function() {
-                        window.location.href = url.link;
+                        window.open(currentButton.getAttribute('data-link'), '_blank');
                     };
 
                     // 为按钮绑定右键菜单
