@@ -347,10 +347,10 @@
 
             if (isExpanded) {
                 expandBtn.textContent = '收起';
-                container.style.maxHeight = '600px';  // 展开所有按钮
+                container.style.display = "";  // 展开所有按钮
             } else {
                 expandBtn.textContent = '展开更多';
-                container.style.maxHeight = '300px';  // 限制显示按钮数量
+                container.style.display = "none";  // 限制显示按钮数量
             }
         }
     </script>
