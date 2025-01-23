@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -70,19 +71,19 @@
         }
 
         /* 增加网址按钮 */
-        .add-url-btn {
-            padding: 10px;
-            background-color: transparent;
-            color: #0078d4;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: auto; /* 将按钮推到容器的最右边 */
-        }
+.add-url-btn {
+    padding: 10px;
+    background-color: transparent;
+    color: #0078d4;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto; /* 将按钮推到容器的最右边 */
+}
 
         .add-url-btn:hover {
             background-color: #f0f0f0;
@@ -130,18 +131,15 @@
             background-color: #005a8b;
         }
 
-        /* 网页按钮容器 */
-        .url-buttons-container {
-            margin-top: 20px;
-            display: flex;
-            flex-wrap: wrap; /* 允许按钮换行 */
-            justify-content: flex-start; /* 按钮从左侧开始排列 */
-            gap: 10px; /* 按钮之间的间隔 */
-            width: 100%;
-            max-height: 300px; /* 限制显示按钮数量 */
-            overflow: hidden; /* 隐藏超出部分 */
-            transition: max-height 0.3s ease-in-out; /* 添加过渡效果 */
-        }
+/* 网页按钮容器 */
+.url-buttons-container {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap; /* 允许按钮换行 */
+    justify-content: flex-start; /* 按钮从左侧开始排列 */
+    gap: 10px; /* 按钮之间的间隔 */
+    width: 100%;
+}
 
         .url-button {
             padding: 10px 15px;
@@ -183,21 +181,6 @@
         .context-menu button:hover {
             background-color: #f0f0f0;
         }
-
-        /* 展开按钮 */
-        .expand-btn {
-            padding: 10px;
-            background-color: transparent;
-            color: #0078d4;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -212,25 +195,25 @@
             </button>
         </div>
 
-        <!-- 存放已增加的网址按钮 -->
-        <div class="url-buttons-container" id="urlButtonsContainer">
-            <!-- 增加网址按钮 -->
-            <button class="add-url-btn" onclick="openModal()">
-                <i class="fas fa-plus"></i> <!-- 增加图标 -->
-            </button>
+<!-- 存放已增加的网址按钮 -->
+<div class="url-buttons-container" id="urlButtonsContainer">
+    <!-- 增加网址按钮 -->
+    <button class="add-url-btn" onclick="openModal()">
+        <i class="fas fa-plus"></i> <!-- 增加图标 -->
+    </button>
+</div>
+
+
+        <!-- 增加网址弹出框 -->
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <input type="text" id="urlName" placeholder="网页名" />
+                <input type="text" id="urlLink" placeholder="网址" />
+                <button onclick="addUrl()">确定</button>
+            </div>
         </div>
 
-        <!-- 展开按钮 -->
-        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">展开更多</button>
-    </div>
-
-    <!-- 增加网址弹出框 -->
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <input type="text" id="urlName" placeholder="网页名" />
-            <input type="text" id="urlLink" placeholder="网址" />
-            <button onclick="addUrl()">确定</button>
-        </div>
+        
     </div>
 
     <!-- 右键菜单 -->
@@ -242,7 +225,6 @@
 
     <script>
         let currentButton = null;
-        let isExpanded = false;
 
         // 处理回车键触发搜索
         document.getElementById('searchInput').addEventListener('keydown', function(event) {
@@ -287,72 +269,110 @@
                 var urlButton = document.createElement('button');
                 urlButton.className = 'url-button';
                 urlButton.textContent = urlName;
-                urlButton.setAttribute('data-link', urlLink); // 保存网址链接
+                urlButton.setAttribute('data-link', urlLink); // 使用自定义属性存储链接
+                urlButton.onclick = function() {
+                    window.location.href = urlLink;
+                };
 
-                // 添加右键菜单事件
-                urlButton.addEventListener('contextmenu', function(event) {
+                // 为按钮绑定右键菜单
+                urlButton.oncontextmenu = function(event) {
                     event.preventDefault();
-                    showContextMenu(event, urlButton);
-                });
+                    currentButton = urlButton;
+                    showContextMenu(event);
+                };
 
-                // 添加网址按钮到容器
-                document.getElementById('urlButtonsContainer').appendChild(urlButton);
-                closeModal(); // 关闭弹出框
+                //document.getElementById('urlButtonsContainer').appendChild(urlButton);
+// 将新增的按钮插入到加号按钮的左侧
+        var container = document.getElementById('urlButtonsContainer');
+        container.insertBefore(urlButton, container.lastElementChild); // `container.lastElementChild` 是加号按钮
+                // 保存网址按钮到 localStorage
+                saveUrls();
+
+                // 关闭弹窗
+                closeModal();
             } else {
-                alert('请填写网址名和网址');
+                alert('请填写完整的信息');
             }
         }
 
         // 显示右键菜单
-        function showContextMenu(event, button) {
-            currentButton = button;
+        function showContextMenu(event) {
             var contextMenu = document.getElementById('contextMenu');
-            contextMenu.style.display = 'block';
             contextMenu.style.left = event.pageX + 'px';
             contextMenu.style.top = event.pageY + 'px';
+            contextMenu.style.display = 'block';
         }
+
+        // 隐藏右键菜单
+        document.addEventListener('click', function() {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
 
         // 编辑网址
         function editUrl() {
-            var urlButton = currentButton;
-            var newUrl = prompt('请输入新的网址链接', urlButton.getAttribute('data-link'));
-            if (newUrl) {
-                urlButton.setAttribute('data-link', newUrl);
+            var urlName = prompt('编辑网页名', currentButton.textContent);
+            var urlLink = prompt('编辑网址', currentButton.getAttribute('data-link'));
+            if (urlName && urlLink) {
+                currentButton.textContent = urlName;
+                currentButton.setAttribute('data-link', urlLink);
+                saveUrls();
             }
-            closeContextMenu();
         }
 
         // 删除网址
         function deleteUrl() {
             currentButton.remove();
-            closeContextMenu();
+            saveUrls();
         }
 
-        // 新标签页打开网址
+        // 在新标签页打开网址
         function openInNewTab() {
             window.open(currentButton.getAttribute('data-link'), '_blank');
-            closeContextMenu();
         }
 
-        // 关闭右键菜单
-        function closeContextMenu() {
-            document.getElementById('contextMenu').style.display = 'none';
+        // 保存网址按钮到 localStorage
+        function saveUrls() {
+            var buttons = document.querySelectorAll('.url-button');
+            var urls = [];
+            buttons.forEach(function(button) {
+                var urlName = button.textContent;
+                var urlLink = button.getAttribute('data-link');
+                urls.push({ name: urlName, link: urlLink });
+            });
+            // 将按钮信息以 JSON 格式保存到 localStorage
+            localStorage.setItem('urls', JSON.stringify(urls));
         }
 
-        // 切换展开/收起按钮
-        function toggleExpand() {
-            isExpanded = !isExpanded;
-            var expandBtn = document.getElementById('expandBtn');
-            var container = document.getElementById('urlButtonsContainer');
+        // 页面加载时，加载已保存的网址
+        function loadUrls() {
+            var savedUrls = localStorage.getItem('urls');
+            if (savedUrls) {
+                var urls = JSON.parse(savedUrls);
+                urls.forEach(function(url) {
+                    var urlButton = document.createElement('button');
+                    urlButton.className = 'url-button';
+                    urlButton.textContent = url.name;
+                    urlButton.setAttribute('data-link', url.link);
+                    urlButton.onclick = function() {
+                        window.location.href = url.link;
+                    };
 
-            if (isExpanded) {
-                expandBtn.textContent = '收起';
-                container.style.display = "";  // 展开所有按钮
-            } else {
-                expandBtn.textContent = '展开更多';
-                container.style.display = "none";  // 限制显示按钮数量
+                    // 为按钮绑定右键菜单
+                    urlButton.oncontextmenu = function(event) {
+                        event.preventDefault();
+                        currentButton = urlButton;
+                        showContextMenu(event);
+                    };
+
+                   // document.getElementById('urlButtonsContainer').appendChild(urlButton);
+// 将按钮插入到加号按钮的左侧
+            document.getElementById('urlButtonsContainer').insertBefore(urlButton, document.querySelector('.add-url-btn'));
+                });
             }
         }
+
+        // 页面加载时调用 loadUrls 函数
+        window.onload = loadUrls;
     </script>
 
 </body>
