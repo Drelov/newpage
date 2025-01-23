@@ -139,6 +139,9 @@
     justify-content: flex-start; /* 按钮从左侧开始排列 */
     gap: 10px; /* 按钮之间的间隔 */
     width: 100%;
+    max-height: 300px; /* 限制显示按钮数量 */
+    overflow: hidden; /* 隐藏超出部分 */
+    transition: max-height 0.3s ease-in-out; /* 添加过渡效果 */
 }
 
         .url-button {
@@ -181,6 +184,20 @@
         .context-menu button:hover {
             background-color: #f0f0f0;
         }
+        /* 展开按钮 */
+        .expand-btn {
+            padding: 10px;
+            background-color: transparent;
+            color: #0078d4;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -203,7 +220,9 @@
     </button>
 </div>
 
-
+<!-- 展开按钮 -->
+        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">展开更多</button>
+        
         <!-- 增加网址弹出框 -->
         <div class="modal" id="modal">
             <div class="modal-content">
@@ -225,7 +244,8 @@
 
     <script>
         let currentButton = null;
-
+        let isExpanded = false;
+        
         // 处理回车键触发搜索
         document.getElementById('searchInput').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
@@ -373,6 +393,21 @@
 
         // 页面加载时调用 loadUrls 函数
         window.onload = loadUrls;
+        
+        // 切换展开/收起按钮
+        function toggleExpand() {
+            isExpanded = !isExpanded;
+            var expandBtn = document.getElementById('expandBtn');
+            var container = document.getElementById('urlButtonsContainer');
+
+            if (isExpanded) {
+                expandBtn.textContent = '收起';
+                container.style.display = '';  // 展开所有按钮
+            } else {
+                expandBtn.textContent = '展开更多';
+                container.style.display = 'none';  // 限制显示按钮数量
+            }
+        }
     </script>
 
 </body>
