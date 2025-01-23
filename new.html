@@ -292,7 +292,7 @@
                 urlButton.textContent = urlName;
                 urlButton.setAttribute('data-link', urlLink); // 使用自定义属性存储链接
                 urlButton.onclick = function() {
-                    window.location.href = urlLink;
+                    window.open(urlLink, '_blank');
                 };
 
                 // 为按钮绑定右键菜单
@@ -379,7 +379,7 @@
                     urlButton.textContent = url.name;
                     urlButton.setAttribute('data-link', url.link);
                     urlButton.onclick = function() {
-                        window.open(currentButton.getAttribute('data-link'), '_blank');
+                        window.open(url.link, '_blank');
                     };
 
                     // 为按钮绑定右键菜单
