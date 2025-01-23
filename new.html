@@ -229,6 +229,7 @@
                 <input type="text" id="urlName" placeholder="网页名" />
                 <input type="text" id="urlLink" placeholder="网址" />
                 <button onclick="addUrl()">确定</button>
+                <button onclick="closeModal()">关闭</button>
             </div>
         </div>
 
@@ -338,10 +339,6 @@
                 saveUrls();
             }
         }
-        // 隐藏编辑网页菜单
-        document.addEventListener('click', function() {
-            document.getElementById('modal').style.display = 'none';
-        });
 
         // 删除网址
         function deleteUrl() {
