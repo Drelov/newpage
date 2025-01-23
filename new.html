@@ -138,8 +138,9 @@
             justify-content: flex-start; /* 按钮从左侧开始排列 */
             gap: 10px; /* 按钮之间的间隔 */
             width: 100%;
-            max-height: 300px; /* 设置最大高度 */
-            overflow-y: auto; /* 超过最大高度时显示滚动条 */
+            max-height: 300px; /* 限制显示按钮数量 */
+            overflow: hidden; /* 隐藏超出部分 */
+            transition: max-height 0.3s ease-in-out; /* 添加过渡效果 */
         }
 
         .url-button {
@@ -185,17 +186,17 @@
 
         /* 展开按钮 */
         .expand-btn {
-            margin-top: 10px;
-            padding: 8px 15px;
-            background-color: #0078d4;
-            color: white;
+            padding: 10px;
+            background-color: transparent;
+            color: #0078d4;
             border: none;
-            border-radius: 15px;
+            border-radius: 50%;
             cursor: pointer;
-        }
-
-        .expand-btn:hover {
-            background-color: #005a8b;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -220,15 +221,15 @@
         </div>
 
         <!-- 展开按钮 -->
-        <button class="expand-btn" id="expandBtn" onclick="toggleExpand()">展开更多</button>
+        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">展开更多</button>
+    </div>
 
-        <!-- 增加网址弹出框 -->
-        <div class="modal" id="modal">
-            <div class="modal-content">
-                <input type="text" id="urlName" placeholder="网页名" />
-                <input type="text" id="urlLink" placeholder="网址" />
-                <button onclick="addUrl()">确定</button>
-            </div>
+    <!-- 增加网址弹出框 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <input type="text" id="urlName" placeholder="网页名" />
+            <input type="text" id="urlLink" placeholder="网址" />
+            <button onclick="addUrl()">确定</button>
         </div>
     </div>
 
@@ -286,109 +287,59 @@
                 var urlButton = document.createElement('button');
                 urlButton.className = 'url-button';
                 urlButton.textContent = urlName;
-                urlButton.setAttribute('data-link', urlLink); // 使用自定义属性存储链接
-                urlButton.onclick = function() {
-                    window.location.href = urlLink;
-                };
+                urlButton.setAttribute('data-link', urlLink); // 保存网址链接
 
-                // 为按钮绑定右键菜单
-                urlButton.oncontextmenu = function(event) {
+                // 添加右键菜单事件
+                urlButton.addEventListener('contextmenu', function(event) {
                     event.preventDefault();
-                    currentButton = urlButton;
-                    showContextMenu(event);
-                };
+                    showContextMenu(event, urlButton);
+                });
 
-                // 将新增的按钮插入到加号按钮的左侧
-                var container = document.getElementById('urlButtonsContainer');
-                container.insertBefore(urlButton, container.lastElementChild); // `container.lastElementChild` 是加号按钮
-                // 保存网址按钮到 localStorage
-                saveUrls();
-
-                // 关闭弹窗
-                closeModal();
+                // 添加网址按钮到容器
+                document.getElementById('urlButtonsContainer').appendChild(urlButton);
+                closeModal(); // 关闭弹出框
             } else {
-                alert('请填写完整的信息');
+                alert('请填写网址名和网址');
             }
         }
 
         // 显示右键菜单
-        function showContextMenu(event) {
+        function showContextMenu(event, button) {
+            currentButton = button;
             var contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'block';
             contextMenu.style.left = event.pageX + 'px';
             contextMenu.style.top = event.pageY + 'px';
-            contextMenu.style.display = 'block';
         }
-
-        // 隐藏右键菜单
-        document.addEventListener('click', function() {
-            document.getElementById('contextMenu').style.display = 'none';
-        });
 
         // 编辑网址
         function editUrl() {
-            var urlName = prompt('编辑网页名', currentButton.textContent);
-            var urlLink = prompt('编辑网址', currentButton.getAttribute('data-link'));
-            if (urlName && urlLink) {
-                currentButton.textContent = urlName;
-                currentButton.setAttribute('data-link', urlLink);
-                saveUrls();
+            var urlButton = currentButton;
+            var newUrl = prompt('请输入新的网址链接', urlButton.getAttribute('data-link'));
+            if (newUrl) {
+                urlButton.setAttribute('data-link', newUrl);
             }
+            closeContextMenu();
         }
 
         // 删除网址
         function deleteUrl() {
             currentButton.remove();
-            saveUrls();
+            closeContextMenu();
         }
 
-        // 在新标签页打开网址
+        // 新标签页打开网址
         function openInNewTab() {
             window.open(currentButton.getAttribute('data-link'), '_blank');
+            closeContextMenu();
         }
 
-        // 保存网址按钮到 localStorage
-        function saveUrls() {
-            var buttons = document.querySelectorAll('.url-button');
-            var urls = [];
-            buttons.forEach(function(button) {
-                var urlName = button.textContent;
-                var urlLink = button.getAttribute('data-link');
-                urls.push({ name: urlName, link: urlLink });
-            });
-            // 将按钮信息以 JSON 格式保存到 localStorage
-            localStorage.setItem('urls', JSON.stringify(urls));
+        // 关闭右键菜单
+        function closeContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
         }
 
-        // 页面加载时，加载已保存的网址
-        function loadUrls() {
-            var savedUrls = localStorage.getItem('urls');
-            if (savedUrls) {
-                var urls = JSON.parse(savedUrls);
-                urls.forEach(function(url) {
-                    var urlButton = document.createElement('button');
-                    urlButton.className = 'url-button';
-                    urlButton.textContent = url.name;
-                    urlButton.setAttribute('data-link', url.link);
-                    urlButton.onclick = function() {
-                        window.location.href = url.link;
-                    };
-
-                    // 为按钮绑定右键菜单
-                    urlButton.oncontextmenu = function(event) {
-                        event.preventDefault();
-                        currentButton = urlButton;
-                        showContextMenu(event);
-                    };
-
-                    document.getElementById('urlButtonsContainer').insertBefore(urlButton, document.querySelector('.add-url-btn'));
-                });
-            }
-        }
-
-        // 页面加载时调用 loadUrls 函数
-        window.onload = loadUrls;
-
-        // 切换展开按钮
+        // 切换展开/收起按钮
         function toggleExpand() {
             isExpanded = !isExpanded;
             var expandBtn = document.getElementById('expandBtn');
