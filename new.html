@@ -379,9 +379,9 @@
                     urlButton.textContent = url.name;
                     urlButton.setAttribute('data-link', url.link);
                     urlButton.onclick = function() {
-                        console.log('URL:', url.link);
-                        console.log('URL:', decodeURIComponent(url.link.trim()));
-                        // window.open(url.link, '_blank');
+                        // console.log('URL:', url.link);
+                        // console.log('URL:', decodeURIComponent(url.link.trim()));
+                        window.open(url.link, '_blank');
                     };
 
                     // 为按钮绑定右键菜单
