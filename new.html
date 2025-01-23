@@ -352,7 +352,7 @@
         }
         // 在本网页打开网址
         function openCurrentTab(){
-            window.location.href = url.link;
+            window.open(currentButton.getAttribute('data-link'));
         }
 
         // 保存网址按钮到 localStorage
