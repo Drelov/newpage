@@ -74,6 +74,7 @@
         .engine-switch-btn {
             margin-left: 10px;
             background-color: transparent;
+            justify-content: flex-end;
             border: none;
             cursor: pointer;
         }
@@ -237,12 +238,14 @@
 <div class="url-buttons-container" id="urlButtonsContainer">
     <!-- 增加网址按钮 -->
     <button class="add-url-btn" onclick="openModal()">
-        <i class="fas fa-plus"></i> <!-- 增加图标 -->
+        <i class="fa fa-plus"></i> <!-- 增加图标 -->
     </button>
 </div>
 
 <!-- 展开按钮 -->
-        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">展开更多</button>
+        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">
+            <i id="expandBtnIcon" class="fa fa-angle-double-down"></i><!-- 展开按钮 -->
+        </button>
         
         <!-- 增加网址弹出框 -->
         <div class="modal" id="modal">
@@ -448,10 +451,14 @@
             var container = document.getElementById('urlButtonsContainer');
 
             if (isExpanded) {
-                expandBtn.textContent = '收起';
+                // expandBtn.textContent = '收起';
+                document.getElementById('expandBtnIcon').remove('fa-angle-double-down');
+                document.getElementById('expandBtnIcon').add('fa-angle-double-up');
                 container.style.display = '';  // 展开所有按钮
             } else {
-                expandBtn.textContent = '展开更多';
+                // expandBtn.textContent = '展开更多';
+                document.getElementById('expandBtnIcon').remove('fa-angle-double-up');
+                document.getElementById('expandBtnIcon').add('fa-angle-double-down');
                 container.style.display = 'none';  // 限制显示按钮数量
             }
         }
