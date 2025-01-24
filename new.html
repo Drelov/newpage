@@ -296,12 +296,12 @@
         function toggleSearchEngine() {
             if (searchEngine === 'bing') {
                 searchEngine = 'google';
-                document.getElementById('engineIcon').classList.remove('fa-search');
-                document.getElementById('engineIcon').classList.add('fa-google');
+                document.getElementById('engineIcon').classList.remove('fa fa-edge');
+                document.getElementById('engineIcon').classList.add('fa fa-google');
             } else {
                 searchEngine = 'bing';
-                document.getElementById('engineIcon').classList.remove('fa-google');
-                document.getElementById('engineIcon').classList.add('fa-search');
+                document.getElementById('engineIcon').classList.remove('fa fa-google');
+                document.getElementById('engineIcon').classList.add('fa fa-edge');
             }
         }
 
