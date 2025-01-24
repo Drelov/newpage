@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>搜索与增加网址</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/4.7.0/css/font-awesome.css">
     <style>
         /* 设置页面背景色 */
         body {
@@ -225,11 +225,11 @@
         <div class="search-container">
             <!-- 切换搜索引擎按钮 -->
             <button class="engine-switch-btn" onclick="toggleSearchEngine()">
-                <i id="engineIcon" class="fas fa-edge"></i> <!-- 切换搜索引擎图标 -->
+                <i id="engineIcon" class="fa fa-edge"></i> <!-- 切换搜索引擎图标 -->
             </button>
             <input type="text" class="search-input" id="searchInput" placeholder="请输入搜索内容" />
             <button class="search-icon" onclick="search()">
-                <i class="fas fa-search"></i> <!-- 搜索图标 -->
+                <i class="fa fa-search"></i> <!-- 搜索图标 -->
             </button>
         </div>
 
@@ -296,12 +296,12 @@
         function toggleSearchEngine() {
             if (searchEngine === 'bing') {
                 searchEngine = 'google';
-                document.getElementById('engineIcon').classList.remove('fa fa-edge');
-                document.getElementById('engineIcon').classList.add('fa fa-google');
+                document.getElementById('engineIcon').classList.remove('fa-edge');
+                document.getElementById('engineIcon').classList.add('fa-google');
             } else {
                 searchEngine = 'bing';
-                document.getElementById('engineIcon').classList.remove('fa fa-google');
-                document.getElementById('engineIcon').classList.add('fa fa-edge');
+                document.getElementById('engineIcon').classList.remove('fa-google');
+                document.getElementById('engineIcon').classList.add('fa-edge');
             }
         }
 
