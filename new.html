@@ -70,6 +70,23 @@
             background-color: #f0f0f0;
         }
 
+        /* 切换搜索引擎按钮 */
+        .engine-switch-btn {
+            margin-left: 10px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .engine-switch-btn i {
+            font-size: 18px;
+            color: #0078d4;
+        }
+
+        .engine-switch-btn:hover {
+            background-color: #f0f0f0;
+        }
+
         /* 增加网址按钮 */
 .add-url-btn {
     padding: 10px;
@@ -210,6 +227,10 @@
             <button class="search-icon" onclick="search()">
                 <i class="fas fa-search"></i> <!-- 搜索图标 -->
             </button>
+            <!-- 切换搜索引擎按钮 -->
+            <button class="engine-switch-btn" onclick="toggleSearchEngine()">
+                <i id="engineIcon" class="fas fa-search"></i> <!-- 切换搜索引擎图标 -->
+            </button>
         </div>
 
 <!-- 存放已增加的网址按钮 -->
@@ -246,6 +267,7 @@
     <script>
         let currentButton = null;
         let isExpanded = false;
+        let searchEngine = 'bing';  // 默认搜索引擎为 Bing
         
         // 处理回车键触发搜索
         document.getElementById('searchInput').addEventListener('keydown', function(event) {
@@ -258,10 +280,28 @@
         function search() {
             var query = document.getElementById('searchInput').value;
             if (query) {
-                var url = 'https://cn.bing.com/search?q=' + encodeURIComponent(query);
+                var url;
+                if (searchEngine === 'bing') {
+                    url = 'https://cn.bing.com/search?q=' + encodeURIComponent(query);
+                } else if (searchEngine === 'google') {
+                    url = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+                }
                 window.location.href = url;
             } else {
                 alert('请输入搜索内容');
+            }
+        }
+
+        // 切换搜索引擎
+        function toggleSearchEngine() {
+            if (searchEngine === 'bing') {
+                searchEngine = 'google';
+                document.getElementById('engineIcon').classList.remove('fa-search');
+                document.getElementById('engineIcon').classList.add('fa-google');
+            } else {
+                searchEngine = 'bing';
+                document.getElementById('engineIcon').classList.remove('fa-google');
+                document.getElementById('engineIcon').classList.add('fa-search');
             }
         }
 
