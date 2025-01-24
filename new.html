@@ -452,13 +452,13 @@
 
             if (isExpanded) {
                 // expandBtn.textContent = '收起';
-                document.getElementById('expandBtnIcon').remove('fa-angle-double-down');
-                document.getElementById('expandBtnIcon').add('fa-angle-double-up');
+                document.getElementById('expandBtnIcon').classList.remove('fa-angle-double-down');
+                document.getElementById('expandBtnIcon').classList.add('fa-angle-double-up');
                 container.style.display = '';  // 展开所有按钮
             } else {
                 // expandBtn.textContent = '展开更多';
-                document.getElementById('expandBtnIcon').remove('fa-angle-double-up');
-                document.getElementById('expandBtnIcon').add('fa-angle-double-down');
+                document.getElementById('expandBtnIcon').classList.remove('fa-angle-double-up');
+                document.getElementById('expandBtnIcon').classList.add('fa-angle-double-down');
                 container.style.display = 'none';  // 限制显示按钮数量
             }
         }
