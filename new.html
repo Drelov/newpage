@@ -1058,7 +1058,7 @@
         function loadFromGitHub() {
             showLoader();
             const token = localStorage.getItem('githubToken') || '';
-            const gistId = localStorage.getItem('githubToken') || '';
+            const gistId = localStorage.getItem('gistId') || '';
             
             if (!token) {
                 githubStatus.textContent = "请输入GitHub访问令牌";
