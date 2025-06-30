@@ -1,113 +1,397 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>搜索与增加网址</title>
-    <link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/4.7.0/css/font-awesome.css">
+    <title>简约网址管理器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 设置页面背景色 */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* 页面容器 */
-        .container {
-            text-align: center;
-            max-width: 650px;
-            width: 100%;
-        }
-
-        /* 搜索框的标题文字 */
-        .search-title {
-            font-size: 24px;
-            margin-bottom: 10px;
+        
+        body {
+            background: linear-gradient(135deg, #f7f9fc, #eef2f7);
             color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
         }
-
-        /* 搜索框和按钮容器 */
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeef5;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #4a6fa5;
+            font-weight: 300;
+        }
+        
+        .subtitle {
+            color: #7d8da7;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        /* 搜索区域样式 */
+        .search-section {
+            margin-bottom: 30px;
+            background: #f8fafd;
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+        
         .search-container {
             display: flex;
             align-items: center;
-            justify-content: center;
             background-color: white;
-            border-radius: 30px;
-            padding: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 50px;
+            padding: 5px 15px;
+            box-shadow: 0 2px 10px rgba(74, 111, 165, 0.1);
+            transition: all 0.3s ease;
         }
-
-        /* 输入框样式 */
+        
+        .search-container:focus-within {
+            box-shadow: 0 4px 15px rgba(74, 111, 165, 0.15);
+        }
+        
+        .search-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #4a6fa5;
+            text-align: center;
+            font-weight: 400;
+        }
+        
         .search-input {
-            width: 90%;
-            padding: 10px;
-            border-radius: 15px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-            margin-right: 10px;
+            flex: 1;
+            padding: 14px 15px;
+            border: none;
+            font-size: 1rem;
+            color: #4a6fa5;
+            background: transparent;
+            outline: none;
         }
-
-        /* 搜索图标按钮样式 */
+        
+        .search-input::placeholder {
+            color: #a6b7d4;
+        }
+        
         .search-icon {
             padding: 10px;
             background-color: transparent;
-            color: #0078d4;
+            color: #4a6fa5;
             border: none;
-            border-radius: 15px;
             cursor: pointer;
             font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
         }
-
+        
         .search-icon:hover {
-            background-color: #f0f0f0;
+            opacity: 1;
         }
-
-        /* 切换搜索引擎按钮 */
+        
         .engine-switch-btn {
-            margin-left: 10px;
             background-color: transparent;
-            justify-content: flex-end;
             border: none;
             cursor: pointer;
+            padding: 8px 10px;
+            border-radius: 50%;
+            transition: background 0.3s;
+            color: #4a6fa5;
         }
-
-        .engine-switch-btn i {
-            font-size: 18px;
-            color: #0078d4;
-        }
-
+        
         .engine-switch-btn:hover {
-            background-color: #f0f0f0;
+            background: #f0f4fc;
         }
-
-        /* 增加网址按钮 */
-.add-url-btn {
-    padding: 10px;
-    background-color: transparent;
-    color: #0078d4;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto; /* 将按钮推到容器的最右边 */
-}
-
+        
+        /* 网址管理区域 */
+        .url-section {
+            margin-top: 30px;
+            background: #f8fafd;
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+        
+        .url-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #4a6fa5;
+            font-weight: 400;
+        }
+        
+        .add-url-btn {
+            background: transparent;
+            color: #57a773;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         .add-url-btn:hover {
-            background-color: #f0f0f0;
+            background: rgba(87, 167, 115, 0.1);
+            transform: scale(1.05);
         }
-
-        /* 弹出框样式 */
+        
+        .url-buttons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            max-height: 300px;
+            overflow-y: hidden;
+            padding: 10px;
+            transition: max-height 0.5s ease;
+        }
+        
+        .url-buttons-container.expanded {
+            max-height: 1000px;
+            overflow-y: auto;
+        }
+        
+        .url-button {
+            padding: 14px 10px;
+            background: white;
+            color: #4a6fa5;
+            border: 1px solid #e1e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .url-button i {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: #6c8bc7;
+        }
+        
+        .url-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(74, 111, 165, 0.15);
+            border-color: #c8d4e9;
+        }
+        
+        /* 展开/收起按钮 */
+        .expand-toggle {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eaeef5;
+        }
+        
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: #6c8bc7;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn:hover {
+            background: rgba(108, 139, 199, 0.1);
+        }
+        
+        .toggle-btn i {
+            margin-left: 8px;
+            transition: transform 0.3s;
+        }
+        
+        /* 存储设置区域 */
+        .storage-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eaeef5;
+        }
+        
+        .storage-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: background 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .storage-header:hover {
+            background: rgba(74, 111, 165, 0.05);
+        }
+        
+        .storage-title {
+            color: #4a6fa5;
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin: 0;
+        }
+        
+        .storage-toggle-icon {
+            color: #4a6fa5;
+            transition: transform 0.3s;
+        }
+        
+        .storage-content {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.5s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .storage-content.expanded {
+            max-height: 1000px;
+            opacity: 1;
+        }
+        
+        .storage-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .storage-card {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid #eaeef5;
+        }
+        
+        .storage-card h3 {
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #4a6fa5;
+            font-weight: 500;
+        }
+        
+        .storage-icon {
+            font-size: 1.5rem;
+            color: #6c8bc7;
+        }
+        
+        .storage-card p {
+            color: #7d8da7;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        .storage-input {
+            width: 100%;
+            padding: 13px 15px;
+            border-radius: 10px;
+            border: 1px solid #e1e8f0;
+            background: #f8fafd;
+            color: #4a6fa5;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            transition: border 0.3s, box-shadow 0.3s;
+        }
+        
+        .storage-input:focus {
+            outline: none;
+            border-color: #c8d4e9;
+            box-shadow: 0 0 0 3px rgba(108, 139, 199, 0.1);
+        }
+        
+        .action-btn {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 5px;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .github-btn {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .local-btn {
+            background: #57a773;
+            color: white;
+        }
+        
+        .save-btn {
+            background: #6c8bc7;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            opacity: 0.95;
+        }
+        
+        /* 模态框样式 */
         .modal {
             display: none;
             position: fixed;
@@ -115,354 +399,870 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.4);
             justify-content: center;
             align-items: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            width: 300px;
-        }
-
-        .modal input {
-            width: 80%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-
-        .modal button {
-            padding: 10px 20px;
-            background-color: #0078d4;
-            color: white;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-        }
-
-        .modal button:hover {
-            background-color: #005a8b;
-        }
-
-/* 网页按钮容器 */
-.url-buttons-container {
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap; /* 允许按钮换行 */
-    justify-content: flex-start; /* 按钮从左侧开始排列 */
-    gap: 10px; /* 按钮之间的间隔 */
-    width: 100%;
-    max-height: 300px; /* 限制显示按钮数量 */
-    overflow: hidden; /* 隐藏超出部分 */
-    transition: max-height 0.3s ease-in-out; /* 添加过渡效果 */
-}
-
-        .url-button {
-            padding: 10px 15px;
-            background-color: #0078d4;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            white-space: nowrap;
-            width: 115px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .url-button:hover {
-            background-color: #005a8b;
-        }
-
-        /* 右键菜单 */
-        .context-menu {
-            position: absolute;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            display: none;
             z-index: 1000;
         }
-
-        .context-menu button {
-            padding: 8px 12px;
-            border: none;
-            background-color: white;
-            cursor: pointer;
-            width: 200px;
-            text-align: left;
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
-
-        .context-menu button:hover {
-            background-color: #f0f0f0;
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #4a6fa5;
+            font-weight: 400;
         }
-        /* 展开按钮 */
-        .expand-btn {
-            padding: 10px;
-            background-color: transparent;
-            color: #0078d4;
-            border: none;
+        
+        .modal input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            border: 1px solid #e1e8f0;
+            background: #f8fafd;
+            color: #4a6fa5;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        .modal input:focus {
+            outline: none;
+            border-color: #c8d4e9;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .storage-options {
+                flex-direction: column;
+            }
+            
+            .search-section, .url-section {
+                padding: 20px;
+            }
+        }
+        
+        /* 滚动条样式 */
+        .url-buttons-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .url-buttons-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 4px;
+        }
+        
+        .url-buttons-container::-webkit-scrollbar-thumb {
+            background: #c8d4e9;
+            border-radius: 4px;
+        }
+        
+        .url-buttons-container::-webkit-scrollbar-thumb:hover {
+            background: #a6b7d4;
+        }
+        
+        /* 状态消息 */
+        .status-message {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        
+        .success {
+            background: rgba(87, 167, 115, 0.1);
+            color: #57a773;
+            border: 1px solid rgba(87, 167, 115, 0.2);
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+        }
+        
+        /* 加载动画 */
+        .loader {
+            border: 4px solid rgba(74, 111, 165, 0.1);
             border-radius: 50%;
+            border-top: 4px solid #4a6fa5;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 上下文菜单 */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 1000;
+            min-width: 180px;
+            overflow: hidden;
+            border: 1px solid #eaeef5;
+        }
+        
+        .context-menu button {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            color: #4a6fa5;
             cursor: pointer;
-            font-size: 20px;
+            width: 100%;
+            text-align: left;
+            transition: all 0.2s;
+            font-size: 0.95rem;
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .context-menu button:hover {
+            background: #f8fafd;
+        }
+        
+        .context-menu button i {
+            width: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <!-- 搜索框和按钮 -->
-        <div class="search-title">Search</div>
-        <div class="search-container">
-            <!-- 切换搜索引擎按钮 -->
-            <button class="engine-switch-btn" onclick="toggleSearchEngine()">
-                <i id="engineIcon" class="fa fa-edge"></i> <!-- 切换搜索引擎图标 -->
-            </button>
-            <input type="text" class="search-input" id="searchInput" placeholder="请输入搜索内容" />
-            <button class="search-icon" onclick="search()">
-                <i class="fa fa-search"></i> <!-- 搜索图标 -->
-            </button>
-        </div>
-
-<!-- 存放已增加的网址按钮 -->
-<div class="url-buttons-container" id="urlButtonsContainer">
-    <!-- 增加网址按钮 -->
-    <button class="add-url-btn" onclick="openModal()">
-        <i class="fa fa-plus"></i> <!-- 增加图标 -->
-    </button>
-</div>
-
-<!-- 展开按钮 -->
-        <button id="expandBtn" class="expand-btn" onclick="toggleExpand()">
-            <i id="expandBtnIcon" class="fa fa-angle-double-down"></i><!-- 展开按钮 -->
-        </button>
+        <header>
+            <h1><i class="fas fa-bookmark"></i> 简约网址管理器</h1>
+            <p class="subtitle">优雅地管理您的收藏网址</p>
+        </header>
         
-        <!-- 增加网址弹出框 -->
-        <div class="modal" id="modal">
-            <div class="modal-content">
-                <input type="text" id="urlName" placeholder="网页名" />
-                <input type="text" id="urlLink" placeholder="网址" />
-                <button onclick="addUrl()">确定</button>
-                <button onclick="closeModal()">关闭</button>
+        <!-- 搜索区域 -->
+        <section class="search-section">
+            <h2 class="search-title">快速搜索</h2>
+            <div class="search-container">
+                <button class="engine-switch-btn" id="engineSwitchBtn" title="切换搜索引擎">
+                    <i id="engineIcon" class="fab fa-edge"></i>
+                </button>
+                <input type="text" class="search-input" id="searchInput" placeholder="输入搜索内容...">
+                <button class="search-icon" id="searchBtn" title="搜索">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </section>
+        
+        <!-- 网址管理区域 -->
+        <section class="url-section">
+            <div class="url-header">
+                <h2 class="section-title">我的网址收藏</h2>
+                <button class="add-url-btn" id="addUrlBtn" title="添加新网址">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="url-buttons-container" id="urlButtonsContainer">
+                <!-- 网址按钮将在这里动态生成 -->
+            </div>
+            
+            <!-- 展开/收起按钮 -->
+            <div class="expand-toggle">
+                <button class="toggle-btn" id="toggleExpandBtn">
+                    <span>展开全部</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+        </section>
+        
+        <!-- 存储设置区域 -->
+        <section class="storage-section">
+            <div class="storage-header" id="storageHeader">
+                <h2 class="storage-title">存储设置</h2>
+                <i class="fas fa-chevron-down storage-toggle-icon" id="storageToggleIcon"></i>
+            </div>
+            
+            <div class="storage-content" id="storageContent">
+                <div class="storage-options">
+                    <!-- GitHub存储选项 -->
+                    <div class="storage-card">
+                        <h3><i class="storage-icon fab fa-github"></i> GitHub存储</h3>
+                        <p>将您的网址保存到GitHub Gist，可在任何设备访问</p>
+                        
+                        <div class="input-group">
+                            <input type="text" class="storage-input" id="githubToken" placeholder="GitHub个人访问令牌">
+                            <input type="text" class="storage-input" id="gistId" placeholder="Gist ID (可选)">
+                        </div>
+                        
+                        <div id="githubStatus" class="status-message"></div>
+                        
+                        <div class="btn-group">
+                            <button class="action-btn github-btn" id="saveToGithubBtn">
+                                <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub
+                            </button>
+                            <button class="action-btn github-btn" id="loadFromGithubBtn">
+                                <i class="fas fa-cloud-download-alt"></i> 从GitHub加载
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 本地存储选项 -->
+                    <div class="storage-card">
+                        <h3><i class="storage-icon fas fa-file-export"></i> 本地文件存储</h3>
+                        <p>导出网址数据到本地文件，或从本地JSON文件加载</p>
+                        
+                        <div class="input-group">
+                            <input type="text" class="storage-input" id="filePath" placeholder="文件路径 (如: /data/urls.json)">
+                        </div>
+                        
+                        <div id="localStatus" class="status-message"></div>
+                        
+                        <div class="btn-group">
+                            <button class="action-btn local-btn" id="exportToFileBtn">
+                                <i class="fas fa-file-export"></i> 导出到文件
+                            </button>
+                            <button class="action-btn local-btn" id="importFromFileBtn">
+                                <i class="fas fa-file-import"></i> 从文件导入
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 保存当前存储方式 -->
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="action-btn save-btn" id="saveStorageMethodBtn">
+                        <i class="fas fa-save"></i> 保存当前存储设置
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <div class="loader" id="loader"></div>
+    </div>
+    
+    <!-- 添加网址模态框 -->
+    <div class="modal" id="addUrlModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-plus"></i> 添加新网址</h2>
+            <input type="text" id="urlName" placeholder="网址名称">
+            <input type="text" id="urlLink" placeholder="网址 (包含 http:// 或 https://)">
+            
+            <div class="modal-buttons">
+                <button class="action-btn github-btn" onclick="addUrl()">添加</button>
+                <button class="action-btn local-btn" onclick="closeModal('addUrlModal')">取消</button>
             </div>
         </div>
-
-        
     </div>
-
-    <!-- 右键菜单 -->
+    
+    <!-- 编辑网址模态框 -->
+    <div class="modal" id="editUrlModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-edit"></i> 编辑网址</h2>
+            <input type="text" id="editUrlName" placeholder="网址名称">
+            <input type="text" id="editUrlLink" placeholder="网址">
+            
+            <div class="modal-buttons">
+                <button class="action-btn github-btn" onclick="updateUrl()">保存</button>
+                <button class="action-btn local-btn" onclick="closeModal('editUrlModal')">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上下文菜单 -->
     <div id="contextMenu" class="context-menu">
-        <div><button onclick="editUrl()">编辑</button></div>
-        <div><button onclick="deleteUrl()">删除</button></div>
-        <div><button onclick="openCurrentTab()">本标签页打开</button></div>
+        <button onclick="editSelectedUrl()"><i class="fas fa-edit"></i>编辑</button>
+        <button onclick="deleteSelectedUrl()"><i class="fas fa-trash"></i>删除</button>
+        <button onclick="openInNewTab()"><i class="fas fa-external-link-alt"></i>新标签打开</button>
+        <button onclick="openInCurrentTab()"><i class="fas fa-window-restore"></i>本页打开</button>
     </div>
 
     <script>
-        let currentButton = null;
+        // 全局变量
+        let urls = [];
+        let selectedButton = null;
+        let currentStorageMethod = localStorage.getItem('storageMethod') || 'local';
+        let currentGistId = localStorage.getItem('gistId') || '';
+        let currentFilePath = localStorage.getItem('filePath') || '/data/urls.json';
+        let searchEngine = 'bing';
         let isExpanded = false;
-        let searchEngine = 'bing';  // 默认搜索引擎为 Bing
+        let storageExpanded = false;
         
-        // 处理回车键触发搜索
-        document.getElementById('searchInput').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                search();
-            }
-        });
-
-        // 搜索函数
-        function search() {
-            var query = document.getElementById('searchInput').value;
-            if (query) {
-                var url;
-                if (searchEngine === 'bing') {
-                    url = 'https://cn.bing.com/search?q=' + encodeURIComponent(query);
-                } else if (searchEngine === 'google') {
-                    url = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+        // DOM元素
+        const urlButtonsContainer = document.getElementById('urlButtonsContainer');
+        const githubTokenInput = document.getElementById('githubToken');
+        const gistIdInput = document.getElementById('gistId');
+        const filePathInput = document.getElementById('filePath');
+        const githubStatus = document.getElementById('githubStatus');
+        const localStatus = document.getElementById('localStatus');
+        const loader = document.getElementById('loader');
+        const engineIcon = document.getElementById('engineIcon');
+        const toggleExpandBtn = document.getElementById('toggleExpandBtn');
+        const storageHeader = document.getElementById('storageHeader');
+        const storageContent = document.getElementById('storageContent');
+        const storageToggleIcon = document.getElementById('storageToggleIcon');
+        
+        // 初始化函数
+        function init() {
+            // 从本地存储加载设置
+            loadStorageSettings();
+            
+            // 加载网址数据
+            loadUrls();
+            
+            // 设置事件监听器
+            setupEventListeners();
+        }
+        
+        // 加载存储设置
+        function loadStorageSettings() {
+            githubTokenInput.value = localStorage.getItem('githubToken') || '';
+            gistIdInput.value = currentGistId;
+            filePathInput.value = currentFilePath;
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 搜索功能
+            document.getElementById('searchBtn').addEventListener('click', search);
+            document.getElementById('searchInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') search();
+            });
+            
+            // 搜索引擎切换
+            document.getElementById('engineSwitchBtn').addEventListener('click', toggleSearchEngine);
+            
+            // 添加网址按钮
+            document.getElementById('addUrlBtn').addEventListener('click', () => {
+                openModal('addUrlModal');
+            });
+            
+            // GitHub存储按钮
+            document.getElementById('saveToGithubBtn').addEventListener('click', saveToGitHub);
+            document.getElementById('loadFromGithubBtn').addEventListener('click', loadFromGitHub);
+            
+            // 本地存储按钮
+            document.getElementById('exportToFileBtn').addEventListener('click', exportToFile);
+            document.getElementById('importFromFileBtn').addEventListener('click', importFromFile);
+            
+            // 保存存储方法按钮
+            document.getElementById('saveStorageMethodBtn').addEventListener('click', saveStorageMethod);
+            
+            // 点击外部关闭上下文菜单
+            document.addEventListener('click', () => {
+                document.getElementById('contextMenu').style.display = 'none';
+            });
+            
+            // 展开/收起按钮
+            toggleExpandBtn.addEventListener('click', toggleExpand);
+            
+            // 存储设置标题点击事件
+            storageHeader.addEventListener('click', toggleStorageContent);
+        }
+        
+        // 加载网址数据
+        function loadUrls() {
+            // 尝试从本地存储加载
+            const savedUrls = localStorage.getItem('localUrls');
+            if (savedUrls) {
+                try {
+                    urls = JSON.parse(savedUrls);
+                    renderUrls();
+                    return;
+                } catch (e) {
+                    console.error('解析本地存储数据失败:', e);
                 }
-                window.location.href = url;
-            } else {
-                alert('请输入搜索内容');
+            }
+            
+            // 根据存储方法加载数据
+            if (currentStorageMethod === 'github' && currentGistId) {
+                loadFromGitHub();
+            } else if (currentStorageMethod === 'local') {
+                // 模拟从文件路径加载
+                localStatus.textContent = "提示: 此功能需要服务器支持";
+                localStatus.className = "status-message error";
             }
         }
-
+        
+        // 渲染网址按钮
+        function renderUrls() {
+            urlButtonsContainer.innerHTML = '';
+            
+            if (urls.length === 0) {
+                urlButtonsContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7d8da7;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                        <p>暂无保存的网址</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            urls.forEach((url, index) => {
+                const urlButton = document.createElement('button');
+                urlButton.className = 'url-button';
+                urlButton.innerHTML = `
+                    <i class="fas fa-link"></i>
+                    <span>${url.name}</span>
+                `;
+                urlButton.setAttribute('data-link', url.link);
+                urlButton.setAttribute('data-index', index);
+                
+                // 点击打开网址
+                urlButton.addEventListener('click', () => {
+                    window.open(url.link, '_blank');
+                });
+                
+                // 右键菜单
+                urlButton.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    selectedButton = urlButton;
+                    showContextMenu(e);
+                });
+                
+                urlButtonsContainer.appendChild(urlButton);
+            });
+            
+            // 更新展开/收起按钮状态
+            updateExpandButton();
+        }
+        
+        // 显示上下文菜单
+        function showContextMenu(e) {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
+        }
+        
+        // 搜索功能
+        function search() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+            
+            let searchUrl;
+            if (searchEngine === 'bing') {
+                searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+            } else {
+                searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            }
+            
+            window.open(searchUrl, '_blank');
+        }
+        
         // 切换搜索引擎
         function toggleSearchEngine() {
             if (searchEngine === 'bing') {
                 searchEngine = 'google';
-                document.getElementById('engineIcon').classList.remove('fa-edge');
-                document.getElementById('engineIcon').classList.add('fa-google');
+                engineIcon.className = 'fab fa-google';
             } else {
                 searchEngine = 'bing';
-                document.getElementById('engineIcon').classList.remove('fa-google');
-                document.getElementById('engineIcon').classList.add('fa-edge');
+                engineIcon.className = 'fab fa-edge';
             }
         }
-
-        // 打开增加网址的弹出框
-        function openModal() {
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        // 关闭增加网址的弹出框
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-        }
-
-        // 增加网址按钮
+        
+        // 添加网址
         function addUrl() {
-            var urlName = document.getElementById('urlName').value;
-            var urlLink = document.getElementById('urlLink').value;
-
-            // 确保网址以 http:// 或 https:// 开头
-            if (urlLink && !urlLink.startsWith('http://') && !urlLink.startsWith('https://')) {
-                urlLink = 'http://' + urlLink;
+            const name = document.getElementById('urlName').value.trim();
+            let link = document.getElementById('urlLink').value.trim();
+            
+            if (!name || !link) {
+                alert('请填写网址名称和链接');
+                return;
             }
-
-            if (urlName && urlLink) {
-                // 创建新的按钮
-                var urlButton = document.createElement('button');
-                urlButton.className = 'url-button';
-                urlButton.textContent = urlName;
-                urlButton.setAttribute('data-link', urlLink); // 使用自定义属性存储链接
-                urlButton.onclick = function() {
-                    window.open(urlLink, '_blank');
-                };
-
-                // 为按钮绑定右键菜单
-                urlButton.oncontextmenu = function(event) {
-                    event.preventDefault();
-                    currentButton = urlButton;
-                    showContextMenu(event);
-                };
-
-                //document.getElementById('urlButtonsContainer').appendChild(urlButton);
-// 将新增的按钮插入到加号按钮的左侧
-        var container = document.getElementById('urlButtonsContainer');
-        container.insertBefore(urlButton, container.lastElementChild); // `container.lastElementChild` 是加号按钮
-                // 保存网址按钮到 localStorage
-                saveUrls();
-
-                // 关闭弹窗
-                closeModal();
-            } else {
-                alert('请填写完整的信息');
+            
+            // 确保链接有协议头
+            if (!link.startsWith('http://') && !link.startsWith('https://')) {
+                link = 'https://' + link;
             }
-        }
-
-        // 显示右键菜单
-        function showContextMenu(event) {
-            var contextMenu = document.getElementById('contextMenu');
-            contextMenu.style.left = event.pageX + 'px';
-            contextMenu.style.top = event.pageY + 'px';
-            contextMenu.style.display = 'block';
-        }
-
-        // 隐藏右键菜单
-        document.addEventListener('click', function() {
-            document.getElementById('contextMenu').style.display = 'none';
-        });
-
-        // 编辑网址
-        function editUrl() {
-            var urlName = prompt('编辑网页名', currentButton.textContent);
-            var urlLink = prompt('编辑网址', currentButton.getAttribute('data-link'));
-            if (urlName && urlLink) {
-                currentButton.textContent = urlName;
-                currentButton.setAttribute('data-link', urlLink);
-                saveUrls();
-            }
-        }
-
-        // 删除网址
-        function deleteUrl() {
-            currentButton.remove();
+            
+            urls.push({ name, link });
             saveUrls();
+            renderUrls();
+            closeModal('addUrlModal');
         }
-
+        
+        // 编辑选中的网址
+        function editSelectedUrl() {
+            if (!selectedButton) return;
+            
+            const index = parseInt(selectedButton.getAttribute('data-index'));
+            const url = urls[index];
+            
+            document.getElementById('editUrlName').value = url.name;
+            document.getElementById('editUrlLink').value = url.link;
+            openModal('editUrlModal');
+        }
+        
+        // 更新网址
+        function updateUrl() {
+            if (!selectedButton) return;
+            
+            const index = parseInt(selectedButton.getAttribute('data-index'));
+            const name = document.getElementById('editUrlName').value.trim();
+            let link = document.getElementById('editUrlLink').value.trim();
+            
+            if (!name || !link) {
+                alert('请填写网址名称和链接');
+                return;
+            }
+            
+            // 确保链接有协议头
+            if (!link.startsWith('http://') && !link.startsWith('https://')) {
+                link = 'https://' + link;
+            }
+            
+            urls[index] = { name, link };
+            saveUrls();
+            renderUrls();
+            closeModal('editUrlModal');
+        }
+        
+        // 删除选中的网址
+        function deleteSelectedUrl() {
+            if (!selectedButton) return;
+            
+            if (confirm('确定要删除这个网址吗？')) {
+                const index = parseInt(selectedButton.getAttribute('data-index'));
+                urls.splice(index, 1);
+                saveUrls();
+                renderUrls();
+                document.getElementById('contextMenu').style.display = 'none';
+            }
+        }
+        
         // 在新标签页打开网址
         function openInNewTab() {
-            window.open(currentButton.getAttribute('data-link'), '_blank');
+            if (!selectedButton) return;
+            const link = selectedButton.getAttribute('data-link');
+            window.open(link, '_blank');
+            document.getElementById('contextMenu').style.display = 'none';
         }
-        // 在本网页打开网址
-        function openCurrentTab(){
-            window.location.href = currentButton.getAttribute('data-link');
+        
+        // 在当前标签页打开网址
+        function openInCurrentTab() {
+            if (!selectedButton) return;
+            const link = selectedButton.getAttribute('data-link');
+            window.location.href = link;
         }
-
-        // 保存网址按钮到 localStorage
+        
+        // 保存网址数据
         function saveUrls() {
-            var buttons = document.querySelectorAll('.url-button');
-            var urls = [];
-            buttons.forEach(function(button) {
-                var urlName = button.textContent;
-                var urlLink = button.getAttribute('data-link');
-                urls.push({ name: urlName, link: urlLink });
-            });
-            // 将按钮信息以 JSON 格式保存到 localStorage
-            localStorage.setItem('urls', JSON.stringify(urls));
-        }
-
-        // 页面加载时，加载已保存的网址
-        function loadUrls() {
-            var savedUrls = localStorage.getItem('urls');
-            if (savedUrls) {
-                var urls = JSON.parse(savedUrls);
-                urls.forEach(function(url) {
-                    var urlButton = document.createElement('button');
-                    urlButton.className = 'url-button';
-                    urlButton.textContent = url.name;
-                    urlButton.setAttribute('data-link', url.link);
-                    urlButton.onclick = function() {
-                        // console.log('URL:', url.link);
-                        // console.log('URL:', decodeURIComponent(url.link.trim()));
-                        window.open(url.link, '_blank');
-                    };
-
-                    // 为按钮绑定右键菜单
-                    urlButton.oncontextmenu = function(event) {
-                        event.preventDefault();
-                        currentButton = urlButton;
-                        showContextMenu(event);
-                    };
-
-                   // document.getElementById('urlButtonsContainer').appendChild(urlButton);
-// 将按钮插入到加号按钮的左侧
-            document.getElementById('urlButtonsContainer').insertBefore(urlButton, document.querySelector('.add-url-btn'));
-                });
+            // 保存到本地存储
+            localStorage.setItem('localUrls', JSON.stringify(urls));
+            
+            // 根据当前存储方法保存到相应位置
+            if (currentStorageMethod === 'github') {
+                saveToGitHub();
+            } else if (currentStorageMethod === 'local') {
+                // 在实际应用中，这里会将数据保存到指定路径
+                localStatus.textContent = "数据已保存到本地存储";
+                localStatus.className = "status-message success";
             }
         }
-
-        // 页面加载时调用 loadUrls 函数
-        window.onload = loadUrls;
-        document.getElementById('urlButtonsContainer').style.display = 'none';
-        // 切换展开/收起按钮
+        
+        // 保存到GitHub Gist
+        function saveToGitHub() {
+            showLoader();
+            const token = githubTokenInput.value.trim();
+            const gistId = gistIdInput.value.trim();
+            
+            if (!token) {
+                githubStatus.textContent = "请输入GitHub访问令牌";
+                githubStatus.className = "status-message error";
+                hideLoader();
+                return;
+            }
+            
+            const data = {
+                description: "网址管理器数据",
+                public: false,
+                files: {
+                    "urls.json": {
+                        content: JSON.stringify(urls, null, 2)
+                    }
+                }
+            };
+            
+            const url = gistId ? 
+                `https://api.github.com/gists/${gistId}` : 
+                'https://api.github.com/gists';
+            
+            const method = gistId ? 'PATCH' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.id) {
+                    // 保存Gist ID
+                    currentGistId = data.id;
+                    gistIdInput.value = currentGistId;
+                    localStorage.setItem('gistId', currentGistId);
+                    
+                    githubStatus.textContent = gistId ? 
+                        "Gist更新成功!" : 
+                        "Gist创建成功! ID: " + currentGistId;
+                    githubStatus.className = "status-message success";
+                    
+                    // 更新存储方法
+                    currentStorageMethod = 'github';
+                    localStorage.setItem('storageMethod', 'github');
+                } else {
+                    githubStatus.textContent = "保存失败: " + (data.message || '未知错误');
+                    githubStatus.className = "status-message error";
+                }
+                hideLoader();
+            })
+            .catch(error => {
+                githubStatus.textContent = "请求失败: " + error.message;
+                githubStatus.className = "status-message error";
+                hideLoader();
+            });
+        }
+        
+        // 从GitHub Gist加载
+        function loadFromGitHub() {
+            showLoader();
+            const token = "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";
+            const gistId = "fcdbd7c583b077b84dda0629388d5826";
+            
+            if (!token) {
+                githubStatus.textContent = "请输入GitHub访问令牌";
+                githubStatus.className = "status-message error";
+                hideLoader();
+                return;
+            }
+            
+            if (!gistId) {
+                githubStatus.textContent = "请输入Gist ID";
+                githubStatus.className = "status-message error";
+                hideLoader();
+                return;
+            }
+            
+            fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gist加载失败: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const content = data.files['urls.json']?.content;
+                if (content) {
+                    try {
+                        urls = JSON.parse(content);
+                        saveUrls(); // 保存到本地存储
+                        renderUrls();
+                        
+                        githubStatus.textContent = "数据加载成功!";
+                        githubStatus.className = "status-message success";
+                        
+                        // 更新存储方法
+                        currentStorageMethod = 'github';
+                        localStorage.setItem('storageMethod', 'github');
+                    } catch (e) {
+                        githubStatus.textContent = "解析数据失败: " + e.message;
+                        githubStatus.className = "status-message error";
+                    }
+                } else {
+                    githubStatus.textContent = "未找到urls.json文件";
+                    githubStatus.className = "status-message error";
+                }
+                hideLoader();
+            })
+            .catch(error => {
+                githubStatus.textContent = "加载失败: " + error.message;
+                githubStatus.className = "status-message error";
+                hideLoader();
+            });
+        }
+        
+        // 导出到本地文件
+        function exportToFile() {
+            const dataStr = JSON.stringify(urls, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            
+            const exportName = 'urls-' + new Date().toISOString().slice(0, 10) + '.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportName);
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            
+            localStatus.textContent = "文件已导出";
+            localStatus.className = "status-message success";
+        }
+        
+        // 从本地文件导入
+        function importFromFile() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            
+            fileInput.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        urls = JSON.parse(e.target.result);
+                        saveUrls();
+                        renderUrls();
+                        
+                        localStatus.textContent = "数据导入成功!";
+                        localStatus.className = "status-message success";
+                        
+                        // 更新存储方法
+                        currentStorageMethod = 'local';
+                        localStorage.setItem('storageMethod', 'local');
+                    } catch (error) {
+                        localStatus.textContent = "导入失败: 文件格式不正确";
+                        localStatus.className = "status-message error";
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            fileInput.click();
+        }
+        
+        // 保存存储方法
+        function saveStorageMethod() {
+            // 保存GitHub Token
+            const githubToken = githubTokenInput.value.trim();
+            if (githubToken) {
+                localStorage.setItem('githubToken', githubToken);
+            }
+            
+            // 保存Gist ID
+            const gistId = gistIdInput.value.trim();
+            if (gistId) {
+                localStorage.setItem('gistId', gistId);
+                currentGistId = gistId;
+            }
+            
+            // 保存文件路径
+            const filePath = filePathInput.value.trim();
+            if (filePath) {
+                localStorage.setItem('filePath', filePath);
+                currentFilePath = filePath;
+            }
+            
+            // 显示成功消息
+            const successMsg = document.createElement('div');
+            successMsg.textContent = '存储设置已保存!';
+            successMsg.className = 'status-message success';
+            document.getElementById('saveStorageMethodBtn').parentNode.insertBefore(successMsg, document.getElementById('saveStorageMethodBtn'));
+            
+            setTimeout(() => {
+                successMsg.remove();
+            }, 3000);
+        }
+        
+        // 打开模态框
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // 显示加载动画
+        function showLoader() {
+            loader.style.display = 'block';
+        }
+        
+        // 隐藏加载动画
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+        
+        // 切换网址收藏区展开/收起状态
         function toggleExpand() {
             isExpanded = !isExpanded;
-            var expandBtn = document.getElementById('expandBtn');
-            var container = document.getElementById('urlButtonsContainer');
-
             if (isExpanded) {
-                // expandBtn.textContent = '收起';
-                document.getElementById('expandBtnIcon').classList.remove('fa-angle-double-down');
-                document.getElementById('expandBtnIcon').classList.add('fa-angle-double-up');
-                container.style.display = '';  // 展开所有按钮
+                urlButtonsContainer.classList.add('expanded');
             } else {
-                // expandBtn.textContent = '展开更多';
-                document.getElementById('expandBtnIcon').classList.remove('fa-angle-double-up');
-                document.getElementById('expandBtnIcon').classList.add('fa-angle-double-down');
-                container.style.display = 'none';  // 限制显示按钮数量
+                urlButtonsContainer.classList.remove('expanded');
+            }
+            updateExpandButton();
+        }
+        
+        // 更新展开/收起按钮状态
+        function updateExpandButton() {
+            const icon = toggleExpandBtn.querySelector('i');
+            const text = toggleExpandBtn.querySelector('span');
+            
+            if (isExpanded) {
+                text.textContent = '收起';
+                icon.className = 'fas fa-chevron-up';
+            } else {
+                text.textContent = '展开全部';
+                icon.className = 'fas fa-chevron-down';
             }
         }
+        
+        // 切换存储设置内容显示状态
+        function toggleStorageContent() {
+            storageExpanded = !storageExpanded;
+            if (storageExpanded) {
+                storageContent.classList.add('expanded');
+                storageToggleIcon.classList.remove('fa-chevron-down');
+                storageToggleIcon.classList.add('fa-chevron-up');
+            } else {
+                storageContent.classList.remove('expanded');
+                storageToggleIcon.classList.remove('fa-chevron-up');
+                storageToggleIcon.classList.add('fa-chevron-down');
+            }
+        }
+        
+        // 页面加载时初始化
+        window.onload = init;
     </script>
-
 </body>
 </html>
