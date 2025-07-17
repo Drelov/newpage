@@ -238,6 +238,52 @@
             font-size: 0.9rem;
         }
         
+        /* 文件夹样式 */
+        .folders-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(74, 111, 165, 0.1);
+        }
+        
+        .folder-tab {
+            padding: 8px 16px;
+            background: rgba(74, 111, 165, 0.1);
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            color: #4a6fa5;
+        }
+        
+        .folder-tab.active {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .folder-tab:hover:not(.active) {
+            background: rgba(74, 111, 165, 0.2);
+        }
+        
+        .folder-tab i {
+            font-size: 0.9rem;
+        }
+        
+        .folder-count {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 0 6px;
+            font-size: 0.8rem;
+            min-width: 20px;
+            text-align: center;
+        }
+        
         /* 展开/收起按钮 */
         .expand-toggle {
             text-align: center;
@@ -454,7 +500,7 @@
             gap: 10px;
         }
         
-        .modal input {
+        .modal input, .modal select {
             width: 100%;
             padding: 14px;
             margin-bottom: 18px;
@@ -466,7 +512,7 @@
             transition: border 0.3s;
         }
         
-        .modal input:focus {
+        .modal input:focus, .modal select:focus {
             outline: none;
             border-color: #c8d4e9;
             box-shadow: 0 0 0 3px rgba(108, 139, 199, 0.1);
@@ -643,6 +689,34 @@
         .empty-state p {
             font-size: 1.1rem;
         }
+        
+        /* 文件夹管理按钮 */
+        .manage-folders-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #7d8da7;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .manage-folders-btn:hover {
+            background: rgba(74, 111, 165, 0.1);
+            color: #4a6fa5;
+        }
+        
+        /* 文件夹操作菜单 */
+        .folder-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -675,12 +749,27 @@
                 </button>
             </div>
             
+            <!-- 文件夹导航 -->
+            <div class="folders-container" id="foldersContainer">
+                <!-- 文件夹标签将在这里动态生成 -->
+            </div>
+            
             <div class="url-buttons-container" id="urlButtonsContainer">
                 <!-- 网址按钮将在这里动态生成 -->
                 <div class="empty-state">
                     <i class="fas fa-cloud-download-alt"></i>
                     <p>点击下方"从GitHub加载"按钮获取您的收藏</p>
                 </div>
+            </div>
+            
+            <!-- 文件夹管理按钮 -->
+            <div class="folder-actions">
+                <button class="manage-folders-btn" id="addFolderBtn">
+                    <i class="fas fa-folder-plus"></i> 添加文件夹
+                </button>
+                <button class="manage-folders-btn" id="editFolderBtn">
+                    <i class="fas fa-edit"></i> 编辑文件夹
+                </button>
             </div>
             
             <!-- 展开/收起按钮 -->
@@ -749,6 +838,10 @@
             <h2><i class="fas fa-plus"></i> 添加新网址</h2>
             <input type="text" id="urlName" placeholder="网址名称">
             <input type="text" id="urlLink" placeholder="网址 (包含 http:// 或 https://)">
+            <select id="urlFolder">
+                <option value="">未分类</option>
+                <!-- 文件夹选项将在这里动态生成 -->
+            </select>
             
             <div class="modal-buttons">
                 <button class="action-btn github-btn" id="addUrlConfirmBtn">添加</button>
@@ -763,6 +856,10 @@
             <h2><i class="fas fa-edit"></i> 编辑网址</h2>
             <input type="text" id="editUrlName" placeholder="网址名称">
             <input type="text" id="editUrlLink" placeholder="网址">
+            <select id="editUrlFolder">
+                <option value="">未分类</option>
+                <!-- 文件夹选项将在这里动态生成 -->
+            </select>
             
             <div class="modal-buttons">
                 <button class="action-btn github-btn" id="editUrlConfirmBtn">保存</button>
@@ -771,25 +868,65 @@
         </div>
     </div>
     
+    <!-- 添文件夹模态框 -->
+    <div class="modal" id="addFolderModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-folder-plus"></i> 添加新文件夹</h2>
+            <input type="text" id="folderName" placeholder="文件夹名称">
+            
+            <div class="modal-buttons">
+                <button class="action-btn github-btn" id="addFolderConfirmBtn">添加</button>
+                <button class="action-btn local-btn" id="addFolderCancelBtn">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑文件夹模态框 -->
+    <div class="modal" id="editFolderModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-edit"></i> 编辑文件夹</h2>
+            <select id="folderSelect">
+                <!-- 文件夹选项将在这里动态生成 -->
+            </select>
+            <input type="text" id="editFolderName" placeholder="新文件夹名称">
+            
+            <div class="modal-buttons">
+                <button class="action-btn github-btn" id="editFolderConfirmBtn">保存</button>
+                <button class="action-btn local-btn" id="editFolderCancelBtn">取消</button>
+                <button class="action-btn" id="deleteFolderBtn" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white;">删除</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 上下文菜单 -->
     <div id="contextMenu" class="context-menu">
         <button id="editContextBtn"><i class="fas fa-edit"></i>编辑</button>
+        <button id="moveContextBtn"><i class="fas fa-folder"></i>移动到文件夹</button>
         <button id="deleteContextBtn"><i class="fas fa-trash"></i>删除</button>
         <button id="openNewTabBtn"><i class="fas fa-external-link-alt"></i>新标签打开</button>
+    </div>
+    
+    <!-- 文件夹选择菜单 -->
+    <div id="folderMenu" class="context-menu">
+        <!-- 文件夹选项将在这里动态生成 -->
     </div>
 
     <script>
         // 全局变量
         let urls = [];
+        let folders = ['常用', '工作', '学习', '娱乐']; // 初始文件夹
         let selectedButton = null;
+        let selectedUrlIndex = null;
         let currentGistId = localStorage.getItem('gistId') || '';
         let githubToken = localStorage.getItem('githubToken') || '';
         let searchEngine = 'bing';
         let isExpanded = false;
         let storageExpanded = false;
+        let currentFolder = '全部';
         
         // DOM元素
         const urlButtonsContainer = document.getElementById('urlButtonsContainer');
+        const foldersContainer = document.getElementById('foldersContainer');
         const githubTokenInput = document.getElementById('githubToken');
         const gistIdInput = document.getElementById('gistId');
         const githubStatus = document.getElementById('githubStatus');
@@ -804,11 +941,14 @@
         // 初始化函数
         function init() {
             // 从本地存储加载设置
-            loadStorageSettings();
+            loadStorageSettings();   
             
             // 设置事件监听器
             setupEventListeners();
-            
+
+            // 加载文件夹
+             loadFolders();
+
             // 如果已有令牌和Gist ID，尝试加载
             if (githubToken && currentGistId) {
                 loadFromGitHub();
@@ -819,12 +959,30 @@
             
             // 更新存储状态
             updateStorageStatus();
+
+		
         }
         
         // 加载存储设置
         function loadStorageSettings() {
             githubTokenInput.value = '';
             gistIdInput.value = currentGistId;
+            
+            // 尝试从本地存储加载文件夹
+            const savedFolders = localStorage.getItem('folders');
+            if (savedFolders) {
+                folders = JSON.parse(savedFolders);
+            }
+        }
+        
+        // 保存文件夹到本地存储
+        function saveFolders() {
+            localStorage.setItem('folders', JSON.stringify(folders));
+        }
+        
+        // 加载文件夹
+        function loadFolders() {
+            renderFolders();
         }
         
         // 更新存储状态显示
@@ -856,6 +1014,7 @@
             
             // 添加网址按钮
             document.getElementById('addUrlBtn').addEventListener('click', () => {
+                populateFolderSelect('urlFolder');
                 openModal('addUrlModal');
             });
             
@@ -867,8 +1026,11 @@
             document.getElementById('saveStorageMethodBtn').addEventListener('click', saveStorageMethod);
             
             // 点击外部关闭上下文菜单
-            document.addEventListener('click', () => {
-                document.getElementById('contextMenu').style.display = 'none';
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.context-menu')) {
+                    document.getElementById('contextMenu').style.display = 'none';
+                    document.getElementById('folderMenu').style.display = 'none';
+                }
             });
             
             // 展开/收起按钮
@@ -885,31 +1047,112 @@
             
             // 上下文菜单按钮
             document.getElementById('editContextBtn').addEventListener('click', editSelectedUrl);
+            document.getElementById('moveContextBtn').addEventListener('click', showFolderMenu);
             document.getElementById('deleteContextBtn').addEventListener('click', deleteSelectedUrl);
             document.getElementById('openNewTabBtn').addEventListener('click', openInNewTab);
+            
+            // 文件夹管理按钮
+            document.getElementById('addFolderBtn').addEventListener('click', () => openModal('addFolderModal'));
+            document.getElementById('editFolderBtn').addEventListener('click', () => {
+                populateFolderSelect('folderSelect');
+                document.getElementById('editFolderName').value = '';
+                openModal('editFolderModal');
+            });
+            
+            // 文件夹操作按钮
+            document.getElementById('addFolderConfirmBtn').addEventListener('click', addFolder);
+            document.getElementById('addFolderCancelBtn').addEventListener('click', () => closeModal('addFolderModal'));
+            document.getElementById('editFolderConfirmBtn').addEventListener('click', editFolder);
+            document.getElementById('editFolderCancelBtn').addEventListener('click', () => closeModal('editFolderModal'));
+            document.getElementById('deleteFolderBtn').addEventListener('click', deleteFolder);
+        }
+        
+        // 渲染文件夹
+        function renderFolders() {
+            foldersContainer.innerHTML = '';
+            
+            // 添加"全部"文件夹
+            const allFolderBtn = document.createElement('button');
+            allFolderBtn.className = `folder-tab ${currentFolder === '全部' ? 'active' : ''}`;
+            allFolderBtn.innerHTML = `
+                <i class="fas fa-layer-group"></i>
+                <span>全部</span>
+                <span class="folder-count">${urls.length}</span>
+            `;
+            allFolderBtn.addEventListener('click', () => {
+                currentFolder = '全部';
+                renderFolders();
+                renderUrls();
+            });
+            foldersContainer.appendChild(allFolderBtn);
+            
+            // 添加"未分类"文件夹
+            const uncategorizedCount = urls.filter(url => !url.folder).length;
+            const uncategorizedBtn = document.createElement('button');
+            uncategorizedBtn.className = `folder-tab ${currentFolder === '未分类' ? 'active' : ''}`;
+            uncategorizedBtn.innerHTML = `
+                <i class="fas fa-folder"></i>
+                <span>未分类</span>
+                <span class="folder-count">${uncategorizedCount}</span>
+            `;
+            uncategorizedBtn.addEventListener('click', () => {
+                currentFolder = '未分类';
+                renderFolders();
+                renderUrls();
+            });
+            foldersContainer.appendChild(uncategorizedBtn);
+            
+            // 添加用户自定义文件夹
+            folders.forEach(folder => {
+                const folderCount = urls.filter(url => url.folder === folder).length;
+                if (folderCount === 0 && currentFolder !== folder) return;
+                
+                const folderBtn = document.createElement('button');
+                folderBtn.className = `folder-tab ${currentFolder === folder ? 'active' : ''}`;
+                folderBtn.innerHTML = `
+                    <i class="fas fa-folder${currentFolder === folder ? '-open' : ''}"></i>
+                    <span>${folder}</span>
+                    <span class="folder-count">${folderCount}</span>
+                `;
+                folderBtn.addEventListener('click', () => {
+                    currentFolder = folder;
+                    renderFolders();
+                    renderUrls();
+                });
+                foldersContainer.appendChild(folderBtn);
+            });
         }
         
         // 渲染网址按钮
         function renderUrls() {
             urlButtonsContainer.innerHTML = '';
             
-            if (urls.length === 0) {
+            // 过滤当前文件夹的网址
+            const filteredUrls = currentFolder === '全部' ? 
+                urls : 
+                urls.filter(url => 
+                    (currentFolder === '未分类' && !url.folder) || 
+                    url.folder === currentFolder
+                );
+            
+            if (filteredUrls.length === 0) {
                 urlButtonsContainer.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <p>暂无保存的网址，请添加新网址</p>
+                        <p>${currentFolder === '全部' ? '暂无保存的网址' : `该文件夹为空`}</p>
                     </div>
                 `;
                 return;
             }
             
-            urls.forEach((url, index) => {
+            filteredUrls.forEach((url, index) => {
                 const urlButton = document.createElement('button');
                 urlButton.className = 'url-button';
                 urlButton.innerHTML = `
                     <i class="fas fa-link"></i>
                     <span>${url.name}</span>
                     <i class="fas fa-star fav-icon"></i>
+                    ${url.folder ? `<span style="position: absolute; bottom: 5px; font-size: 0.7rem; color: #7d8da7;">${url.folder}</span>` : ''}
                 `;
                 urlButton.setAttribute('data-link', url.link);
                 urlButton.setAttribute('data-index', index);
@@ -923,6 +1166,7 @@
                 urlButton.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     selectedButton = urlButton;
+                    selectedUrlIndex = index;
                     showContextMenu(e);
                 });
                 
@@ -939,6 +1183,55 @@
             contextMenu.style.display = 'block';
             contextMenu.style.left = `${e.pageX}px`;
             contextMenu.style.top = `${e.pageY}px`;
+        }
+        
+        // 显示文件夹菜单
+        function showFolderMenu(e) {
+            const folderMenu = document.getElementById('folderMenu');
+            folderMenu.innerHTML = '';
+            
+            // 添加"未分类"选项
+            const uncategorizedBtn = document.createElement('button');
+            uncategorizedBtn.innerHTML = `<i class="fas fa-folder"></i> 未分类`;
+            uncategorizedBtn.addEventListener('click', () => {
+                moveUrlToFolder('');
+                folderMenu.style.display = 'none';
+            });
+            folderMenu.appendChild(uncategorizedBtn);
+            
+            // 添加用户文件夹选项
+            folders.forEach(folder => {
+                const folderBtn = document.createElement('button');
+                folderBtn.innerHTML = `<i class="fas fa-folder-open"></i> ${folder}`;
+                folderBtn.addEventListener('click', () => {
+                    moveUrlToFolder(folder);
+                    folderMenu.style.display = 'none';
+                });
+                folderMenu.appendChild(folderBtn);
+            });
+            
+            // 添加"新建文件夹"选项
+            const newFolderBtn = document.createElement('button');
+            newFolderBtn.innerHTML = `<i class="fas fa-plus"></i> 新建文件夹`;
+            newFolderBtn.addEventListener('click', () => {
+                openModal('addFolderModal');
+                folderMenu.style.display = 'none';
+            });
+            folderMenu.appendChild(newFolderBtn);
+            
+            folderMenu.style.display = 'block';
+            folderMenu.style.left = `${e.pageX}px`;
+            folderMenu.style.top = `${e.pageY}px`;
+        }
+        
+        // 移动网址到文件夹
+        function moveUrlToFolder(folder) {
+            if (selectedUrlIndex === null) return;
+            
+            urls[selectedUrlIndex].folder = folder;
+            saveToGitHub();
+            renderUrls();
+            renderFolders();
         }
         
         // 搜索功能
@@ -971,6 +1264,7 @@
         function addUrl() {
             const name = document.getElementById('urlName').value.trim();
             let link = document.getElementById('urlLink').value.trim();
+            const folder = document.getElementById('urlFolder').value;
             
             if (!name || !link) {
                 showStatus('请填写网址名称和链接', 'error');
@@ -982,9 +1276,10 @@
                 link = 'https://' + link;
             }
             
-            urls.push({ name, link });
+            urls.push({ name, link, folder });
             saveToGitHub();
             renderUrls();
+            renderFolders();
             closeModal('addUrlModal');
             
             // 清空表单
@@ -994,13 +1289,13 @@
         
         // 编辑选中的网址
         function editSelectedUrl() {
-            if (!selectedButton) return;
+            if (selectedUrlIndex === null) return;
             
-            const index = parseInt(selectedButton.getAttribute('data-index'));
-            const url = urls[index];
+            const url = urls[selectedUrlIndex];
             
             document.getElementById('editUrlName').value = url.name;
             document.getElementById('editUrlLink').value = url.link;
+            populateFolderSelect('editUrlFolder', url.folder || '');
             openModal('editUrlModal');
             
             // 隐藏上下文菜单
@@ -1009,11 +1304,11 @@
         
         // 更新网址
         function updateUrl() {
-            if (!selectedButton) return;
+            if (selectedUrlIndex === null) return;
             
-            const index = parseInt(selectedButton.getAttribute('data-index'));
             const name = document.getElementById('editUrlName').value.trim();
             let link = document.getElementById('editUrlLink').value.trim();
+            const folder = document.getElementById('editUrlFolder').value;
             
             if (!name || !link) {
                 showStatus('请填写网址名称和链接', 'error');
@@ -1025,31 +1320,123 @@
                 link = 'https://' + link;
             }
             
-            urls[index] = { name, link };
+            urls[selectedUrlIndex] = { name, link, folder };
             saveToGitHub();
             renderUrls();
+            renderFolders();
             closeModal('editUrlModal');
         }
         
         // 删除选中的网址
         function deleteSelectedUrl() {
-            if (!selectedButton) return;
+            if (selectedUrlIndex === null) return;
             
             if (confirm('确定要删除这个网址吗？')) {
-                const index = parseInt(selectedButton.getAttribute('data-index'));
-                urls.splice(index, 1);
+                urls.splice(selectedUrlIndex, 1);
                 saveToGitHub();
                 renderUrls();
+                renderFolders();
                 document.getElementById('contextMenu').style.display = 'none';
             }
         }
         
         // 在新标签页打开网址
         function openInNewTab() {
-            if (!selectedButton) return;
-            const link = selectedButton.getAttribute('data-link');
+            if (selectedUrlIndex === null) return;
+            const link = urls[selectedUrlIndex].link;
             window.open(link, '_blank');
             document.getElementById('contextMenu').style.display = 'none';
+        }
+        
+        // 添加文件夹
+        function addFolder() {
+            const name = document.getElementById('folderName').value.trim();
+            
+            if (!name) {
+                showStatus('请输入文件夹名称', 'error');
+                return;
+            }
+            
+            if (folders.includes(name)) {
+                showStatus('文件夹名称已存在', 'error');
+                return;
+            }
+            
+            folders.push(name);
+            saveFolders();
+            renderFolders();
+            closeModal('addFolderModal');
+            document.getElementById('folderName').value = '';
+        }
+        
+        // 编辑文件夹
+        function editFolder() {
+            const oldName = document.getElementById('folderSelect').value;
+            const newName = document.getElementById('editFolderName').value.trim();
+            
+            if (!newName) {
+                showStatus('请输入新文件夹名称', 'error');
+                return;
+            }
+            
+            if (folders.includes(newName) ) {
+                showStatus('文件夹名称已存在', 'error');
+                return;
+            }
+            
+            // 更新文件夹名称
+            const index = folders.indexOf(oldName);
+            if (index !== -1) {
+                folders[index] = newName;
+                
+                // 更新网址中的文件夹名称
+                urls.forEach(url => {
+                    if (url.folder === oldName) {
+                        url.folder = newName;
+                    }
+                });
+                
+                // 如果当前文件夹是正在编辑的文件夹，更新当前文件夹
+                if (currentFolder === oldName) {
+                    currentFolder = newName;
+                }
+                
+                saveFolders();
+                saveToGitHub();
+                renderFolders();
+                renderUrls();
+                closeModal('editFolderModal');
+            }
+        }
+        
+        // 删除文件夹
+        function deleteFolder() {
+            const folderName = document.getElementById('folderSelect').value;
+            
+            if (!folderName) return;
+            
+            if (confirm(`确定要删除文件夹 "${folderName}" 吗？该文件夹中的所有网址将移动到"未分类"`)) {
+                // 删除文件夹
+                folders = folders.filter(folder => folder !== folderName);
+                
+                // 将网址移动到未分类
+                urls.forEach(url => {
+                    if (url.folder === folderName) {
+                        url.folder = '';
+                    }
+                });
+                
+                // 如果当前文件夹是被删除的文件夹，切换到"全部"
+                if (currentFolder === folderName) {
+                    currentFolder = '全部';
+                }
+                
+                saveFolders();
+                saveToGitHub();
+                renderFolders();
+                renderUrls();
+                closeModal('editFolderModal');
+            }
         }
         
         // 保存到GitHub Gist
@@ -1064,12 +1451,18 @@
             
             showLoader();
             
+            // 保存文件夹信息
+            saveFolders();
+            
             const data = {
                 description: "网址管理器数据",
                 public: false,
                 files: {
                     "urls.json": {
                         content: JSON.stringify(urls, null, 2)
+                    },
+                    "folders.json": {
+                        content: JSON.stringify(folders, null, 2)
                     }
                 }
             };
@@ -1126,11 +1519,9 @@
         
         // 从GitHub Gist加载
         function loadFromGitHub() {
-            // const token = githubTokenInput.value.trim() || githubToken;
-            // const gistId = gistIdInput.value.trim() || currentGistId;
-            const token = localStorage.getItem('githubToken');
-	    const gistId = localStorage.getItem('gistId');
-
+            const token = localStorage.getItem('githubToken') || githubTokenInput.value.trim();
+            const gistId = localStorage.getItem('gistId') || gistIdInput.value.trim();
+            
             if (!token) {
                 showStatus('请输入GitHub访问令牌', 'error');
                 return;
@@ -1156,33 +1547,47 @@
                 return response.json();
             })
             .then(data => {
-                const content = data.files['urls.json']?.content;
-                if (content) {
+                // 加载网址
+                const urlsContent = data.files['urls.json']?.content;
+                if (urlsContent) {
                     try {
-                        urls = JSON.parse(content);
-                        
-                        // 保存Token和Gist ID
-                        if (githubTokenInput.value.trim()) {
-                            githubToken = githubTokenInput.value.trim();
-                            localStorage.setItem('githubToken', githubToken);
-                            githubTokenInput.value = '';
-                        }
-                        
-                        currentGistId = gistId;
-                        localStorage.setItem('gistId', currentGistId);
-                        gistIdInput.value = currentGistId;
-                        
-                        renderUrls();
-                        showStatus('数据加载成功!', 'success');
-                        
-                        // 更新状态
-                        updateStorageStatus();
+                        urls = JSON.parse(urlsContent);
                     } catch (e) {
-                        showStatus('解析数据失败: ' + e.message, 'error');
+                        showStatus('解析网址数据失败: ' + e.message, 'error');
                     }
                 } else {
                     showStatus('未找到urls.json文件', 'error');
                 }
+                
+                // 加载文件夹
+                const foldersContent = data.files['folders.json']?.content;
+                if (foldersContent) {
+                    try {
+                        folders = JSON.parse(foldersContent);
+                        saveFolders();
+                    } catch (e) {
+                        showStatus('解析文件夹数据失败: ' + e.message, 'error');
+                    }
+                }
+                
+                // 保存Token和Gist ID
+                if (githubTokenInput.value.trim()) {
+                    githubToken = githubTokenInput.value.trim();
+                    localStorage.setItem('githubToken', githubToken);
+                    githubTokenInput.value = '';
+                }
+                
+                currentGistId = gistId;
+                localStorage.setItem('gistId', currentGistId);
+                gistIdInput.value = currentGistId;
+                
+                renderFolders();
+                renderUrls();
+                showStatus('数据加载成功!', 'success');
+                
+                // 更新状态
+                updateStorageStatus();
+                
                 hideLoader();
             })
             .catch(error => {
@@ -1210,6 +1615,20 @@
             
             showStatus('存储设置已保存!', 'success');
             updateStorageStatus();
+        }
+        
+        // 填充文件夹选择框
+        function populateFolderSelect(selectId, selectedFolder = '') {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">未分类</option>';
+            
+            folders.forEach(folder => {
+                const option = document.createElement('option');
+                option.value = folder;
+                option.textContent = folder;
+                option.selected = folder === selectedFolder;
+                select.appendChild(option);
+            });
         }
         
         // 打开模态框
