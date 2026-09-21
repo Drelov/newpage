@@ -12,6 +12,7 @@
     const BOOKMARK_FILENAME = 'urls.json';
     const PBKDF2_ITERATIONS = 210000;
     const GIST_LIST_URL = 'https://api.github.com/gists?per_page=100';
+    const GIST_LIST_MAX_PAGES = 10;
     const RESERVED_FOLDERS = ['全部', '星标', '未分类'];
     const KEEPALIVE_MAX_BYTES = 60000;
 
@@ -134,23 +135,34 @@
         const fetchImpl = fetchFn || (typeof fetch === 'function' ? fetch : null);
         if (!fetchImpl) throw new Error('当前环境无法请求 GitHub');
         if (!token) throw new Error('缺少访问令牌');
-        const response = await fetchImpl(GIST_LIST_URL, {
-            headers: {
-                Authorization: 'Bearer ' + token,
-                Accept: 'application/vnd.github+json'
+        let url = GIST_LIST_URL;
+        let best = null;
+        let pages = 0;
+        while (url && pages < GIST_LIST_MAX_PAGES) {
+            pages += 1;
+            const response = await fetchImpl(url, {
+                headers: {
+                    Authorization: 'Bearer ' + token,
+                    Accept: 'application/vnd.github+json'
+                }
+            });
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (error) {
+                data = null;
             }
-        });
-        let data = null;
-        try {
-            data = await response.json();
-        } catch (error) {
-            data = null;
+            if (!response.ok) {
+                throw new Error((data && data.message) || '无法列出 Gist');
+            }
+            if (!Array.isArray(data)) throw new Error('Gist 列表格式不正确');
+            const picked = pickBookmarkGist(data);
+            if (picked && (!best || gistTimestamp(picked) > gistTimestamp(best))) {
+                best = picked;
+            }
+            url = parseNextLink(responseLinkHeader(response));
         }
-        if (!response.ok) {
-            throw new Error((data && data.message) || '无法列出 Gist');
-        }
-        if (!Array.isArray(data)) throw new Error('Gist 列表格式不正确');
-        return pickBookmarkGist(data);
+        return best;
     }
 
     function readVault(storage) {
@@ -165,6 +177,26 @@
         } catch (error) {
             return null;
         }
+    }
+
+    async function updateVaultSecret(vault, currentPassword, options) {
+        const opts = options || {};
+        const currentToken = await decryptToken(currentPassword, vault);
+        const nextPassword = opts.newPassword ? String(opts.newPassword) : currentPassword;
+        const nextToken = opts.newToken ? String(opts.newToken).trim() : currentToken;
+        if (!opts.newPassword && !opts.newToken) {
+            throw new Error('请填写新密码或新令牌');
+        }
+        if (opts.newPassword && nextPassword.length < 6) {
+            throw new Error('本站密码至少 6 位');
+        }
+        if (opts.newToken && !looksLikeAccessToken(nextToken)) {
+            throw new Error('这不像 gist 个人访问令牌');
+        }
+        const record = await encryptToken(nextPassword, nextToken);
+        record.username = (vault && vault.username) || '';
+        record.gistId = (vault && vault.gistId) || '';
+        return { record, token: nextToken };
     }
 
     function writeVault(record, storage) {
@@ -261,6 +293,41 @@
         return 'https://' + trimmed;
     }
 
+    function canonicalLink(raw) {
+        const normalized = normalizeLink(raw);
+        if (!normalized) return '';
+        try {
+            const parsed = new URL(normalized);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return normalized.toLowerCase();
+            }
+            const host = parsed.hostname.toLowerCase();
+            let path = parsed.pathname || '/';
+            if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+            return 'https://' + host + path + parsed.search;
+        } catch (error) {
+            return normalized.toLowerCase();
+        }
+    }
+
+    function parseNextLink(header) {
+        if (!header) return '';
+        const parts = String(header).split(',');
+        for (let i = 0; i < parts.length; i += 1) {
+            const match = parts[i].match(/<([^>]+)>\s*;\s*rel="?next"?/i);
+            if (match) return match[1];
+        }
+        return '';
+    }
+
+    function responseLinkHeader(response) {
+        if (!response || !response.headers) return '';
+        if (typeof response.headers.get === 'function') {
+            return response.headers.get('Link') || response.headers.get('link') || '';
+        }
+        return response.headers.Link || response.headers.link || '';
+    }
+
     function migrateUrl(raw, index) {
         const link = normalizeLink(raw && raw.link);
         const orderRaw = raw && raw.order;
@@ -283,17 +350,19 @@
         const byId = new Map(merged.map((url) => [url.id, url]));
         const byLink = new Map();
         merged.forEach((url) => {
-            if (url.link) byLink.set(url.link, url);
+            const key = canonicalLink(url.link);
+            if (key) byLink.set(key, url);
         });
 
         (remoteUrls || []).forEach((raw, index) => {
             const remote = migrateUrl(raw, index);
+            const remoteKey = canonicalLink(remote.link);
             let local = byId.get(remote.id);
-            if (!local && remote.link) local = byLink.get(remote.link);
+            if (!local && remoteKey) local = byLink.get(remoteKey);
             if (!local) {
                 merged.push(remote);
                 byId.set(remote.id, remote);
-                if (remote.link) byLink.set(remote.link, remote);
+                if (remoteKey) byLink.set(remoteKey, remote);
                 return;
             }
 
@@ -308,7 +377,8 @@
                     order: keepOrder,
                     orderUpdatedAt: keepOrderAt
                 });
-                if (local.link) byLink.set(local.link, local);
+                const localKey = canonicalLink(local.link);
+                if (localKey) byLink.set(localKey, local);
             }
 
             if (orderTimestamp(remote) > orderTimestamp(local)) {
@@ -380,15 +450,18 @@
         BOOKMARK_FILENAME,
         PBKDF2_ITERATIONS,
         GIST_LIST_URL,
+        GIST_LIST_MAX_PAGES,
         RESERVED_FOLDERS,
         KEEPALIVE_MAX_BYTES,
         toBase64,
         fromBase64,
         encryptToken,
         decryptToken,
+        updateVaultSecret,
         looksLikeAccessToken,
         isBookmarkGist,
         pickBookmarkGist,
+        parseNextLink,
         findBookmarkGist,
         readVault,
         writeVault,
@@ -400,6 +473,7 @@
         contentTimestamp,
         orderTimestamp,
         normalizeLink,
+        canonicalLink,
         migrateUrl,
         mergeUrlLists,
         mergeFolders,

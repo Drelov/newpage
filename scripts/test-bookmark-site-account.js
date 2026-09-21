@@ -72,6 +72,29 @@ async function run() {
     assert.strictEqual(auth, 'Bearer ' + fakeToken);
     assert.ok(auth.indexOf(sitePassword) === -1, 'site password must not be sent to GitHub');
 
+    const pageCalls = [];
+    const paged = await api.findBookmarkGist(fakeToken, async (url) => {
+        pageCalls.push(url);
+        if (String(url).indexOf('page=2') !== -1) {
+            return {
+                ok: true,
+                headers: { get: () => null },
+                json: async () => [newer]
+            };
+        }
+        return {
+            ok: true,
+            headers: {
+                get: (name) => /link/i.test(name)
+                    ? '<https://api.github.com/gists?page=2&per_page=100>; rel="next"'
+                    : null
+            },
+            json: async () => [older, unrelated]
+        };
+    });
+    assert.strictEqual(paged.id, 'new', 'newer gist on page 2 must win');
+    assert.strictEqual(pageCalls.length, 2, 'must follow Link rel=next');
+
     const missing = await api.findBookmarkGist(fakeToken, async () => ({
         ok: true,
         json: async () => [unrelated]
@@ -110,6 +133,27 @@ async function run() {
     assert.strictEqual(api.looksLikeAccessToken('mypassword'), false);
     assert.strictEqual(api.looksLikeAccessToken('ghp_abcdefghijklmnopqrstuvwxyz012345'), true);
     assert.strictEqual(api.looksLikeAccessToken('github_pat_11AAAA'), true);
+
+    assert.strictEqual(api.canonicalLink('HTTP://GitHub.com/Drelov/newpage/'), 'https://github.com/Drelov/newpage');
+    assert.strictEqual(api.canonicalLink('github.com/Drelov/newpage'), 'https://github.com/Drelov/newpage');
+    const mergedDupes = api.mergeUrlLists(
+        [api.migrateUrl({ id: 'a', link: 'https://github.com/Drelov/newpage', name: 'Local', updatedAt: 80 })],
+        [api.migrateUrl({ id: 'b', link: 'http://github.com/Drelov/newpage/', name: 'Cloud', updatedAt: 20 })]
+    );
+    assert.strictEqual(mergedDupes.length, 1, 'http/https trailing-slash variants merge as one');
+    assert.strictEqual(mergedDupes[0].name, 'Local');
+    assert.strictEqual(mergedDupes[0].id, 'a');
+
+    const changed = await api.updateVaultSecret(vault, 'correct horse', { newPassword: 'new-horse-battery' });
+    assert.strictEqual(await api.decryptToken('new-horse-battery', changed.record), secret);
+    await assert.rejects(() => api.decryptToken('correct horse', changed.record), /无法解锁令牌/);
+    const rotated = await api.updateVaultSecret(vault, 'correct horse', { newToken: 'github_pat_rotatedtokenvalue0001' });
+    assert.strictEqual(rotated.token, 'github_pat_rotatedtokenvalue0001');
+    assert.strictEqual(await api.decryptToken('correct horse', rotated.record), 'github_pat_rotatedtokenvalue0001');
+    await assert.rejects(
+        () => api.updateVaultSecret(vault, 'correct horse', {}),
+        /请填写新密码或新令牌/
+    );
 
     assert.strictEqual(api.parseTimestamp(undefined), 0);
     assert.strictEqual(api.parseTimestamp(null), 0);
@@ -223,6 +267,9 @@ async function run() {
     const selfTestFlag = new2.indexOf('SELF_TEST');
     assert.ok(testAssign !== -1 && selfTestFlag !== -1 && testAssign > selfTestFlag, '__new2Test only after selftest gate');
     assert.ok(new2.indexOf('writeSessionToken') !== -1);
+    assert.ok(new2.indexOf('updateSiteAccount') !== -1);
+    assert.ok(new2.indexOf('修改密码或更换令牌') !== -1);
+    assert.ok(new2.indexOf('canonicalLink') !== -1);
 
     console.log('bookmark-site-account tests passed');
 }

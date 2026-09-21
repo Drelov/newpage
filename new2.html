@@ -552,7 +552,25 @@
         .logged-in-hint {
             color: #7d8da7;
             font-size: 0.85rem;
-            margin: 0;
+            margin: 0 0 12px;
+        }
+
+        .account-settings {
+            text-align: left;
+            margin-top: 8px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(87, 167, 115, 0.2);
+        }
+
+        .account-settings summary {
+            cursor: pointer;
+            color: #4a6fa5;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .account-settings .field-label {
+            margin-top: 10px;
         }
 
         .auth-mode-switch {
@@ -1117,6 +1135,22 @@
                         <div id="loggedInPanel" class="logged-in-panel" hidden>
                             <p class="logged-in-name" id="loggedInName">已登录</p>
                             <p class="logged-in-hint" id="loggedInHint">访问令牌只在本标签页会话中（刷新可保持登录），本机只保留加密保险柜。</p>
+                            <details class="account-settings" id="accountSettings">
+                                <summary>修改密码或更换令牌</summary>
+                                <label class="field-label" for="accountCurrentPassword">当前本站密码</label>
+                                <input type="password" class="storage-input" id="accountCurrentPassword" placeholder="验证当前密码" autocomplete="current-password" spellcheck="false">
+                                <label class="field-label" for="accountNewPassword">新本站密码（可选）</label>
+                                <input type="password" class="storage-input" id="accountNewPassword" placeholder="不改密码请留空" autocomplete="new-password" spellcheck="false">
+                                <label class="field-label" for="accountNewPasswordConfirm">确认新密码</label>
+                                <input type="password" class="storage-input" id="accountNewPasswordConfirm" placeholder="与新密码一致" autocomplete="new-password" spellcheck="false">
+                                <label class="field-label" for="accountNewToken">新的个人访问令牌（可选）</label>
+                                <input type="password" class="storage-input" id="accountNewToken" placeholder="不换令牌请留空" autocomplete="off" spellcheck="false">
+                                <div class="btn-group">
+                                    <button class="action-btn save-btn" id="updateAccountBtn" type="button">
+                                        <i class="fas fa-key"></i> 保存账号更改
+                                    </button>
+                                </div>
+                            </details>
                         </div>
 
                         <details class="advanced-options" id="advancedOptions">
@@ -1332,7 +1366,12 @@
                 resultCount: document.getElementById('resultCount'),
                 contextMenu: document.getElementById('contextMenu'),
                 folderMenu: document.getElementById('folderMenu'),
-                importFile: document.getElementById('importFile')
+                importFile: document.getElementById('importFile'),
+                accountCurrentPassword: document.getElementById('accountCurrentPassword'),
+                accountNewPassword: document.getElementById('accountNewPassword'),
+                accountNewPasswordConfirm: document.getElementById('accountNewPasswordConfirm'),
+                accountNewToken: document.getElementById('accountNewToken'),
+                updateAccountBtn: document.getElementById('updateAccountBtn')
             };
 
             function uid() {
@@ -1990,7 +2029,12 @@
             }
 
             function findDuplicate(link, exceptId) {
-                return state.urls.find((url) => url.link === link && url.id !== exceptId);
+                const key = SiteAccount ? SiteAccount.canonicalLink(link) : link;
+                return state.urls.find((url) => {
+                    if (exceptId && url.id === exceptId) return false;
+                    const existing = SiteAccount ? SiteAccount.canonicalLink(url.link) : url.link;
+                    return existing && existing === key;
+                });
             }
 
             function addUrl() {
@@ -2430,6 +2474,62 @@
                 await loginWithSitePassword();
             }
 
+            function clearAccountSettingsFields() {
+                if (els.accountCurrentPassword) els.accountCurrentPassword.value = '';
+                if (els.accountNewPassword) els.accountNewPassword.value = '';
+                if (els.accountNewPasswordConfirm) els.accountNewPasswordConfirm.value = '';
+                if (els.accountNewToken) els.accountNewToken.value = '';
+            }
+
+            async function updateSiteAccount() {
+                if (!SiteAccount) {
+                    showStatus('加密模块未加载，无法修改账号', 'error', { expandStorage: true });
+                    return;
+                }
+                if (!state.siteVault || !state.githubToken) {
+                    showStatus('请先登录后再修改密码或令牌', 'error', { expandStorage: true });
+                    return;
+                }
+                const currentPassword = els.accountCurrentPassword ? els.accountCurrentPassword.value : '';
+                const newPassword = els.accountNewPassword ? els.accountNewPassword.value : '';
+                const confirmPassword = els.accountNewPasswordConfirm ? els.accountNewPasswordConfirm.value : '';
+                const newToken = els.accountNewToken ? els.accountNewToken.value.trim() : '';
+                if (!currentPassword) {
+                    showStatus('请输入当前本站密码', 'error', { expandStorage: true });
+                    return;
+                }
+                if (!newPassword && !newToken) {
+                    showStatus('请填写新密码或新令牌', 'error', { expandStorage: true });
+                    return;
+                }
+                if (newPassword && newPassword !== confirmPassword) {
+                    showStatus('两次输入的新密码不一致', 'error', { expandStorage: true });
+                    return;
+                }
+                showLoader();
+                try {
+                    const result = await SiteAccount.updateVaultSecret(state.siteVault, currentPassword, {
+                        newPassword: newPassword || undefined,
+                        newToken: newToken || undefined
+                    });
+                    result.record.username = state.githubUsername || result.record.username || '';
+                    result.record.gistId = state.currentGistId || result.record.gistId || '';
+                    SiteAccount.writeVault(result.record, localStorage);
+                    state.siteVault = result.record;
+                    state.githubToken = result.token;
+                    persistSessionToken();
+                    persistLocal();
+                    clearAccountSettingsFields();
+                    updateAuthUI();
+                    showStatus(newToken && newPassword ? '已更新密码和令牌' : (newToken ? '已更换访问令牌' : '本站密码已更新'), 'success');
+                    if (newToken) await afterUnlocked({ silent: true });
+                } catch (error) {
+                    showStatus(error.message || '账号更新失败', 'error', { expandStorage: true });
+                } finally {
+                    hideLoader();
+                }
+            }
+
             function logout() {
                 if (!confirm('确定退出登录吗？将从内存清除访问令牌。加密保险柜仍留在本机，下次用本站用户名和密码即可解锁。收藏数据不会删除。')) return;
                 state.githubToken = '';
@@ -2437,6 +2537,7 @@
                 state.githubLogin = '';
                 state.pendingToken = '';
                 clearPasswordFields();
+                clearAccountSettingsFields();
                 setAuthMode(state.siteVault ? 'login' : 'register');
                 updateAuthUI();
                 showStatus('已退出登录，收藏仍留在本机', 'info');
@@ -2662,6 +2763,7 @@
                     els.showRegisterModeBtn.addEventListener('click', () => setAuthMode('register'));
                 }
                 document.getElementById('logoutBtn').addEventListener('click', logout);
+                if (els.updateAccountBtn) els.updateAccountBtn.addEventListener('click', updateSiteAccount);
                 document.getElementById('exportBtn').addEventListener('click', exportBackup);
                 document.getElementById('importBtn').addEventListener('click', () => els.importFile.click());
                 els.importFile.addEventListener('change', (event) => {
