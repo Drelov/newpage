@@ -228,6 +228,7 @@
             min-height: 92px;
             user-select: none;
             cursor: grab;
+            touch-action: manipulation;
         }
 
         .url-button:active {
@@ -236,6 +237,23 @@
 
         .url-button.dragging {
             opacity: 0.45;
+            cursor: grabbing;
+        }
+
+        .url-button.lifted {
+            transform: scale(1.04);
+            box-shadow: 0 8px 24px rgba(74, 111, 165, 0.28);
+            z-index: 2;
+        }
+
+        .url-button.drag-ghost {
+            position: fixed;
+            z-index: 3000;
+            margin: 0;
+            opacity: 0.92;
+            pointer-events: none;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05) rotate(2deg);
             cursor: grabbing;
         }
 
@@ -992,12 +1010,41 @@
             pointer-events: none;
             z-index: 2000;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
             transition: opacity 0.25s ease, transform 0.25s ease;
         }
 
         .toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.show.has-action {
+            pointer-events: auto;
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-action {
+            flex-shrink: 0;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .toast-action:hover,
+        .toast-action:focus-visible {
+            background: rgba(255, 255, 255, 0.32);
+            outline: none;
         }
 
         .toast.success { background: #3e8f5c; }
@@ -1122,9 +1169,17 @@
             color: #c5d5ef;
         }
 
-        html.theme-dark .folder-tab.active {
-            background: #4a6fa5;
-            color: white;
+        html.theme-dark .url-button.drag-ghost {
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        }
+
+        html.theme-dark .folder-tab.drop-target {
+            outline-color: #9bb6e3;
+            background: rgba(155, 182, 227, 0.28);
+        }
+
+        html.theme-dark .toast-action {
+            background: rgba(255, 255, 255, 0.16);
         }
 
         html.theme-dark .url-button .url-name,
@@ -1191,7 +1246,7 @@
                 </button>
             </div>
 
-            <p class="drag-hint">拖动卡片可调整顺序，也可拖到上方文件夹 / 星标 / 未分类。键盘：选中卡片后按 Alt + 方向键排序。</p>
+            <p class="drag-hint">拖动卡片可调整顺序，也可拖到上方文件夹 / 星标 / 未分类。手机：长按后拖动排序或拖到文件夹，松手打开菜单。键盘：Alt + 方向键排序，Delete 删除后可撤销。</p>
 
             <div class="folders-container" id="foldersContainer"></div>
 
@@ -1348,11 +1403,14 @@
         <div class="loader" id="loader" aria-hidden="true"></div>
     </div>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite">
+        <span class="toast-message" id="toastMessage"></span>
+        <button type="button" class="toast-action" id="toastAction" hidden>撤销</button>
+    </div>
 
-    <div class="modal" id="addUrlModal" aria-hidden="true">
+    <div class="modal" id="addUrlModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="addUrlModalTitle">
         <div class="modal-content">
-            <h2><i class="fas fa-plus"></i> 添加新网址</h2>
+            <h2 id="addUrlModalTitle"><i class="fas fa-plus"></i> 添加新网址</h2>
             <input type="text" id="urlName" placeholder="网址名称">
             <input type="url" id="urlLink" placeholder="网址，例如 github.com">
             <select id="urlFolder">
@@ -1365,9 +1423,9 @@
         </div>
     </div>
 
-    <div class="modal" id="editUrlModal" aria-hidden="true">
+    <div class="modal" id="editUrlModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="editUrlModalTitle">
         <div class="modal-content">
-            <h2><i class="fas fa-edit"></i> 编辑网址</h2>
+            <h2 id="editUrlModalTitle"><i class="fas fa-edit"></i> 编辑网址</h2>
             <input type="text" id="editUrlName" placeholder="网址名称">
             <input type="url" id="editUrlLink" placeholder="网址">
             <select id="editUrlFolder">
@@ -1380,9 +1438,9 @@
         </div>
     </div>
 
-    <div class="modal" id="addFolderModal" aria-hidden="true">
+    <div class="modal" id="addFolderModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="addFolderModalTitle">
         <div class="modal-content">
-            <h2><i class="fas fa-folder-plus"></i> 添加新文件夹</h2>
+            <h2 id="addFolderModalTitle"><i class="fas fa-folder-plus"></i> 添加新文件夹</h2>
             <input type="text" id="folderName" placeholder="文件夹名称">
             <div class="modal-buttons">
                 <button class="action-btn github-btn" id="addFolderConfirmBtn" type="button">添加</button>
@@ -1391,9 +1449,9 @@
         </div>
     </div>
 
-    <div class="modal" id="editFolderModal" aria-hidden="true">
+    <div class="modal" id="editFolderModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="editFolderModalTitle">
         <div class="modal-content">
-            <h2><i class="fas fa-edit"></i> 编辑文件夹</h2>
+            <h2 id="editFolderModalTitle"><i class="fas fa-edit"></i> 编辑文件夹</h2>
             <select id="folderSelect"></select>
             <input type="text" id="editFolderName" placeholder="新文件夹名称">
             <div class="modal-buttons">
@@ -1465,9 +1523,27 @@
             let cloudSaveTimer = null;
             let cloudSavePending = false;
             let toastTimer = null;
+            let undoTimer = null;
             let pressTimer = null;
             let authChannel = null;
             let skipFolderClick = false;
+            let pendingUndo = null;
+            let modalFocusRestorer = null;
+            const pointerDrag = {
+                pointerId: null,
+                card: null,
+                id: null,
+                startX: 0,
+                startY: 0,
+                lastX: 0,
+                lastY: 0,
+                offsetX: 0,
+                offsetY: 0,
+                lifted: false,
+                dragging: false,
+                ghost: null
+            };
+            const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
             const els = {
                 urlButtonsContainer: document.getElementById('urlButtonsContainer'),
@@ -1502,6 +1578,8 @@
                 storageStatus: document.getElementById('storageStatus'),
                 searchInput: document.getElementById('searchInput'),
                 toast: document.getElementById('toast'),
+                toastMessage: document.getElementById('toastMessage'),
+                toastAction: document.getElementById('toastAction'),
                 resultCount: document.getElementById('resultCount'),
                 contextMenu: document.getElementById('contextMenu'),
                 folderMenu: document.getElementById('folderMenu'),
@@ -1755,13 +1833,72 @@
                 });
             }
 
-            function showToast(message, type) {
-                els.toast.textContent = message;
+            function showToast(message, type, options) {
+                const opts = options || {};
+                const text = els.toastMessage || els.toast;
+                text.textContent = message;
                 els.toast.className = 'toast show ' + (type || 'info');
+                if (els.toastAction) {
+                    els.toastAction.onclick = null;
+                    if (opts.actionLabel && typeof opts.onAction === 'function') {
+                        els.toastAction.hidden = false;
+                        els.toastAction.textContent = opts.actionLabel;
+                        els.toast.classList.add('has-action');
+                        els.toastAction.onclick = (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            opts.onAction();
+                        };
+                    } else {
+                        els.toastAction.hidden = true;
+                        els.toastAction.textContent = '撤销';
+                    }
+                }
                 clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => {
-                    els.toast.classList.remove('show');
-                }, 2800);
+                    els.toast.classList.remove('show', 'has-action');
+                    if (els.toastAction) {
+                        els.toastAction.hidden = true;
+                        els.toastAction.onclick = null;
+                    }
+                    if (typeof opts.onTimeout === 'function') opts.onTimeout();
+                }, opts.duration || 2800);
+            }
+
+            function clearPendingUndo() {
+                pendingUndo = null;
+                clearTimeout(undoTimer);
+                undoTimer = null;
+            }
+
+            function armUndo(snapshot, restoreFn, message) {
+                clearPendingUndo();
+                pendingUndo = snapshot;
+                undoTimer = setTimeout(() => {
+                    if (pendingUndo === snapshot) pendingUndo = null;
+                }, 8000);
+                showToast(message, 'info', {
+                    actionLabel: '撤销',
+                    duration: 8000,
+                    onAction: () => {
+                        if (!pendingUndo) return;
+                        const current = pendingUndo;
+                        clearPendingUndo();
+                        restoreFn(current);
+                        showToast('已撤销', 'success');
+                    }
+                });
+            }
+
+            function undoLastChange() {
+                if (!pendingUndo) return false;
+                const snapshot = pendingUndo;
+                clearPendingUndo();
+                if (snapshot.type === 'url') restoreDeletedUrl(snapshot);
+                else if (snapshot.type === 'folder') restoreDeletedFolder(snapshot);
+                else return false;
+                showToast('已撤销', 'success');
+                return true;
             }
 
             function showStatus(message, type, options) {
@@ -1953,11 +2090,17 @@
                 menu.style.top = top + 'px';
             }
 
+            function modalFocusables(modal) {
+                return [...modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                    .filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true');
+            }
+
             function openModal(modalId) {
                 const modal = document.getElementById(modalId);
+                modalFocusRestorer = document.activeElement;
                 modal.style.display = 'flex';
                 modal.setAttribute('aria-hidden', 'false');
-                const focusable = modal.querySelector('input, select, button');
+                const focusable = modalFocusables(modal)[0] || modal.querySelector('input, select, button');
                 if (focusable) setTimeout(() => focusable.focus(), 30);
             }
 
@@ -1965,6 +2108,11 @@
                 const modal = document.getElementById(modalId);
                 modal.style.display = 'none';
                 modal.setAttribute('aria-hidden', 'true');
+                if (modalFocusRestorer && typeof modalFocusRestorer.focus === 'function') {
+                    const restore = modalFocusRestorer;
+                    modalFocusRestorer = null;
+                    setTimeout(() => restore.focus(), 0);
+                }
             }
 
             function closeAllModals() {
@@ -1972,6 +2120,35 @@
                     modal.style.display = 'none';
                     modal.setAttribute('aria-hidden', 'true');
                 });
+                if (modalFocusRestorer && typeof modalFocusRestorer.focus === 'function') {
+                    const restore = modalFocusRestorer;
+                    modalFocusRestorer = null;
+                    setTimeout(() => restore.focus(), 0);
+                }
+            }
+
+            function trapModalFocus(event) {
+                if (event.key !== 'Tab') return;
+                const open = [...document.querySelectorAll('.modal')].find((modal) => modal.style.display === 'flex');
+                if (!open) return;
+                const list = modalFocusables(open);
+                if (!list.length) return;
+                const first = list[0];
+                const last = list[list.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                } else if (!open.contains(document.activeElement)) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+
+            function activeModal() {
+                return [...document.querySelectorAll('.modal')].find((modal) => modal.style.display === 'flex') || null;
             }
 
             function populateFolderSelect(selectId, selectedFolder, includeUncategorized) {
@@ -2103,10 +2280,10 @@
                     const card = document.createElement('div');
                     card.className = 'url-button';
                     card.tabIndex = 0;
-                    card.draggable = true;
+                    card.draggable = !coarsePointer;
                     card.setAttribute('role', 'link');
                     card.dataset.id = url.id;
-                    card.title = url.link + '（可拖动排序）';
+                    card.title = url.link + (coarsePointer ? '（长按后拖动排序）' : '（可拖动排序）');
 
                     const favicon = document.createElement('img');
                     favicon.className = 'url-favicon';
@@ -2184,18 +2361,11 @@
                         hideMenus();
                         placeMenu(els.contextMenu, event.clientX, event.clientY);
                     });
-                    card.addEventListener('touchstart', (event) => {
-                        const touch = event.touches[0];
-                        clearTimeout(pressTimer);
-                        pressTimer = setTimeout(() => {
-                            state.selectedUrlId = url.id;
-                            state.suppressNextClick = true;
-                            hideMenus();
-                            placeMenu(els.contextMenu, touch.clientX, touch.clientY);
-                        }, 520);
-                    }, { passive: true });
-                    card.addEventListener('touchend', () => clearTimeout(pressTimer));
-                    card.addEventListener('touchmove', () => clearTimeout(pressTimer));
+                    card.addEventListener('pointerdown', (event) => {
+                        if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+                        if (event.target.closest('.fav-icon')) return;
+                        beginTouchPress(event, card, url);
+                    });
 
                     fragment.appendChild(card);
                 });
@@ -2252,6 +2422,171 @@
                     document.querySelectorAll('.url-button.drag-over').forEach((el) => el.classList.remove('drag-over'));
                     persistReorderFromDom();
                 });
+            }
+
+            function resetPointerDrag() {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+                if (pointerDrag.ghost && pointerDrag.ghost.parentNode) pointerDrag.ghost.remove();
+                if (pointerDrag.card) {
+                    pointerDrag.card.classList.remove('dragging', 'lifted');
+                    try {
+                        if (pointerDrag.pointerId != null) pointerDrag.card.releasePointerCapture(pointerDrag.pointerId);
+                    } catch (error) {
+                        // Capture may already be released.
+                    }
+                }
+                document.querySelectorAll('.url-button.drag-over').forEach((el) => el.classList.remove('drag-over'));
+                document.querySelectorAll('.folder-tab.drop-target').forEach((el) => el.classList.remove('drop-target'));
+                pointerDrag.pointerId = null;
+                pointerDrag.card = null;
+                pointerDrag.id = null;
+                pointerDrag.ghost = null;
+                pointerDrag.lifted = false;
+                pointerDrag.dragging = false;
+                state.draggingId = null;
+            }
+
+            function beginTouchPress(event, card, url) {
+                resetPointerDrag();
+                pointerDrag.pointerId = event.pointerId;
+                pointerDrag.card = card;
+                pointerDrag.id = url.id;
+                pointerDrag.startX = event.clientX;
+                pointerDrag.startY = event.clientY;
+                pointerDrag.lastX = event.clientX;
+                pointerDrag.lastY = event.clientY;
+                pointerDrag.lifted = false;
+                pointerDrag.dragging = false;
+                pressTimer = setTimeout(() => {
+                    if (!pointerDrag.card || pointerDrag.pointerId !== event.pointerId) return;
+                    pointerDrag.lifted = true;
+                    pointerDrag.card.classList.add('lifted');
+                    state.selectedUrlId = url.id;
+                    state.draggingId = url.id;
+                    hideMenus();
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(12); } catch (error) { /* optional */ }
+                    }
+                }, 380);
+            }
+
+            function startPointerDrag(event) {
+                const card = pointerDrag.card;
+                if (!card || pointerDrag.dragging) return;
+                pointerDrag.dragging = true;
+                state.didDrag = true;
+                state.suppressNextClick = true;
+                card.classList.add('dragging');
+                card.classList.remove('lifted');
+                const rect = card.getBoundingClientRect();
+                pointerDrag.offsetX = event.clientX - rect.left;
+                pointerDrag.offsetY = event.clientY - rect.top;
+                const ghost = card.cloneNode(true);
+                ghost.classList.add('drag-ghost');
+                ghost.classList.remove('dragging', 'lifted', 'drag-over');
+                ghost.style.width = rect.width + 'px';
+                ghost.style.left = rect.left + 'px';
+                ghost.style.top = rect.top + 'px';
+                document.body.appendChild(ghost);
+                pointerDrag.ghost = ghost;
+                try {
+                    card.setPointerCapture(event.pointerId);
+                } catch (error) {
+                    // Pointer capture is best-effort on some browsers.
+                }
+            }
+
+            function elementFromPointIgnoringGhost(x, y) {
+                const ghost = pointerDrag.ghost;
+                if (ghost) ghost.style.visibility = 'hidden';
+                const el = document.elementFromPoint(x, y);
+                if (ghost) ghost.style.visibility = '';
+                return el;
+            }
+
+            function movePointerGhost(event) {
+                if (!pointerDrag.ghost) return;
+                pointerDrag.ghost.style.left = (event.clientX - pointerDrag.offsetX) + 'px';
+                pointerDrag.ghost.style.top = (event.clientY - pointerDrag.offsetY) + 'px';
+            }
+
+            function updatePointerDropTarget(event) {
+                const under = elementFromPointIgnoringGhost(event.clientX, event.clientY);
+                const folderTab = under && under.closest ? under.closest('.folder-tab') : null;
+                document.querySelectorAll('.folder-tab.drop-target').forEach((el) => {
+                    if (el !== folderTab) el.classList.remove('drop-target');
+                });
+                if (folderTab && folderTab.dataset.dropTab && folderTab.dataset.dropTab !== '全部') {
+                    folderTab.classList.add('drop-target');
+                    skipFolderClick = true;
+                    return;
+                }
+                const target = under && under.closest ? under.closest('.url-button') : null;
+                const dragging = pointerDrag.card;
+                document.querySelectorAll('.url-button.drag-over').forEach((el) => {
+                    if (el !== target) el.classList.remove('drag-over');
+                });
+                if (!target || !dragging || target === dragging || target.classList.contains('drag-ghost')) return;
+                target.classList.add('drag-over');
+                const rect = target.getBoundingClientRect();
+                const after = event.clientX > rect.left + rect.width / 2;
+                if (after) target.after(dragging);
+                else target.before(dragging);
+            }
+
+            function finishPointerDrag(event) {
+                const id = pointerDrag.id;
+                const lifted = pointerDrag.lifted;
+                const dragging = pointerDrag.dragging;
+                const lastX = event && event.clientX != null ? event.clientX : pointerDrag.lastX;
+                const lastY = event && event.clientY != null ? event.clientY : pointerDrag.lastY;
+                const under = dragging ? elementFromPointIgnoringGhost(lastX, lastY) : null;
+                const folderTab = under && under.closest ? under.closest('.folder-tab') : null;
+                resetPointerDrag();
+                if (dragging) {
+                    state.suppressNextClick = true;
+                    skipFolderClick = true;
+                    if (folderTab && folderTab.dataset.dropTab && folderTab.dataset.dropTab !== '全部') {
+                        applyCardDropOnFolder(id, folderTab.dataset.dropTab);
+                        return;
+                    }
+                    persistReorderFromDom();
+                    return;
+                }
+                if (lifted) {
+                    state.selectedUrlId = id;
+                    state.suppressNextClick = true;
+                    hideMenus();
+                    placeMenu(els.contextMenu, lastX, lastY);
+                }
+            }
+
+            function onPointerMove(event) {
+                if (pointerDrag.pointerId !== event.pointerId || !pointerDrag.card) return;
+                pointerDrag.lastX = event.clientX;
+                pointerDrag.lastY = event.clientY;
+                const dist = Math.hypot(event.clientX - pointerDrag.startX, event.clientY - pointerDrag.startY);
+                if (!pointerDrag.lifted) {
+                    if (dist > 12) resetPointerDrag();
+                    return;
+                }
+                if (!pointerDrag.dragging && dist > 8) startPointerDrag(event);
+                if (!pointerDrag.dragging) return;
+                event.preventDefault();
+                movePointerGhost(event);
+                updatePointerDropTarget(event);
+            }
+
+            function onPointerUp(event) {
+                if (pointerDrag.pointerId !== event.pointerId) return;
+                finishPointerDrag(event);
+            }
+
+            function setupPointerReorder() {
+                document.addEventListener('pointermove', onPointerMove, { passive: false });
+                document.addEventListener('pointerup', onPointerUp);
+                document.addEventListener('pointercancel', onPointerUp);
             }
 
             function filterBookmarksFromSearch() {
@@ -2363,15 +2698,52 @@
                 openModal('editUrlModal');
             }
 
+            function restoreDeletedUrl(snapshot) {
+                if (!SiteAccount || !snapshot) return;
+                state.urls = SiteAccount.restoreUrlDelete(state.urls, snapshot);
+                state.selectedUrlId = snapshot.url && snapshot.url.id ? snapshot.url.id : state.selectedUrlId;
+                commitChange();
+            }
+
+            function restoreDeletedFolder(snapshot) {
+                if (!SiteAccount || !snapshot) return;
+                const restored = SiteAccount.restoreFolderDelete(state.folders, state.urls, snapshot, state.currentFolder);
+                state.folders = restored.folders;
+                state.urls = restored.urls;
+                state.currentFolder = restored.currentFolder || '全部';
+                commitChange();
+            }
+
             function deleteSelectedUrl() {
                 const current = selectedUrl();
-                if (!current) return;
-                if (!confirm('确定要删除“' + current.name + '”吗？')) return;
+                if (!current || !SiteAccount) return;
+                const snapshot = SiteAccount.snapshotUrlDelete(state.urls, current.id);
                 state.urls = state.urls.filter((url) => url.id !== current.id);
                 state.selectedUrlId = null;
                 hideMenus();
                 commitChange();
-                showToast('已删除', 'success');
+                armUndo(snapshot, restoreDeletedUrl, '已删除“' + current.name + '”');
+            }
+
+            function deleteFolder() {
+                const folderName = document.getElementById('folderSelect').value;
+                if (!folderName) {
+                    showStatus('请选择要删除的文件夹', 'error');
+                    return;
+                }
+                if (!SiteAccount) return;
+                const snapshot = SiteAccount.snapshotFolderDelete(state.folders, state.urls, folderName, state.currentFolder);
+                state.folders = state.folders.filter((folder) => folder !== folderName);
+                state.urls.forEach((url) => {
+                    if (url.folder === folderName) {
+                        url.folder = '';
+                        touchUrl(url);
+                    }
+                });
+                if (state.currentFolder === folderName) state.currentFolder = '全部';
+                closeModal('editFolderModal');
+                commitChange();
+                armUndo(snapshot, restoreDeletedFolder, '已删除文件夹“' + folderName + '”');
             }
 
             function toggleFavorite(id) {
@@ -2491,26 +2863,6 @@
                 closeModal('editFolderModal');
                 commitChange();
                 showToast('文件夹已重命名', 'success');
-            }
-
-            function deleteFolder() {
-                const folderName = document.getElementById('folderSelect').value;
-                if (!folderName) {
-                    showStatus('请选择要删除的文件夹', 'error');
-                    return;
-                }
-                if (!confirm('确定删除文件夹“' + folderName + '”吗？其中的网址会移到未分类。')) return;
-                state.folders = state.folders.filter((folder) => folder !== folderName);
-                state.urls.forEach((url) => {
-                    if (url.folder === folderName) {
-                        url.folder = '';
-                        touchUrl(url);
-                    }
-                });
-                if (state.currentFolder === folderName) state.currentFolder = '全部';
-                closeModal('editFolderModal');
-                commitChange();
-                showToast('文件夹已删除', 'success');
             }
 
             function friendlyGitHubError(error) {
@@ -3030,11 +3382,27 @@
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape') {
                         hideMenus();
+                        if (pointerDrag.card) resetPointerDrag();
                         closeAllModals();
+                    }
+                    trapModalFocus(event);
+                    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+                        if (pendingUndo && !event.target.closest('input, select, textarea')) {
+                            event.preventDefault();
+                            undoLastChange();
+                            return;
+                        }
                     }
                     if (event.key === '/' && document.activeElement !== els.searchInput && !event.target.closest('input, select, textarea')) {
                         event.preventDefault();
                         els.searchInput.focus();
+                    }
+                    if (activeModal()) return;
+                    if ((event.key === 'Delete' || event.key === 'Backspace') && document.activeElement && document.activeElement.classList.contains('url-button')) {
+                        event.preventDefault();
+                        state.selectedUrlId = document.activeElement.dataset.id;
+                        deleteSelectedUrl();
+                        return;
                     }
                     if (event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowUp')) {
                         event.preventDefault();
@@ -3098,10 +3466,17 @@
                 bindModalSubmit('addFolderModal', addFolder);
                 bindModalSubmit('editFolderModal', editFolder);
                 setupDragAndDrop();
+                setupPointerReorder();
 
                 window.addEventListener('pagehide', flushPendingCloudSave);
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'hidden') flushPendingCloudSave();
+                });
+                window.addEventListener('storage', (event) => {
+                    if (event.key !== STORAGE_KEYS.urls && event.key !== STORAGE_KEYS.folders) return;
+                    loadLocalData();
+                    renderFolders();
+                    renderUrls();
                 });
             }
 
@@ -3235,7 +3610,9 @@
                         pickBookmarkGist: SiteAccount && SiteAccount.pickBookmarkGist,
                         findBookmarkGist: SiteAccount && SiteAccount.findBookmarkGist,
                         encryptToken: SiteAccount && SiteAccount.encryptToken,
-                        decryptToken: SiteAccount && SiteAccount.decryptToken
+                        decryptToken: SiteAccount && SiteAccount.decryptToken,
+                        snapshotUrlDelete: SiteAccount && SiteAccount.snapshotUrlDelete,
+                        restoreUrlDelete: SiteAccount && SiteAccount.restoreUrlDelete
                     };
                     const mergeResults = runMergeSelfTests();
                     const vaultResults = await runSiteAccountSelfTests();

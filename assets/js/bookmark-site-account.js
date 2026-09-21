@@ -294,6 +294,40 @@
         return 'https://' + trimmed;
     }
 
+    const TRACKING_QUERY_PARAMS = [
+        'fbclid', 'gclid', 'gclsrc', 'dclid', 'msclkid',
+        'mc_cid', 'mc_eid', '_ga', '_gl', 'yclid', 'igshid', 'si'
+    ];
+
+    function isTrackingQueryParam(key) {
+        const name = String(key || '').toLowerCase();
+        if (!name) return false;
+        if (name.indexOf('utm_') === 0) return true;
+        return TRACKING_QUERY_PARAMS.indexOf(name) !== -1;
+    }
+
+    function stripTrackingSearch(search) {
+        if (!search) return '';
+        try {
+            const raw = search.charAt(0) === '?' ? search.slice(1) : search;
+            const params = new URLSearchParams(raw);
+            const next = new URLSearchParams();
+            params.forEach((value, key) => {
+                if (isTrackingQueryParam(key)) return;
+                next.append(key, value);
+            });
+            const serialized = next.toString();
+            return serialized ? '?' + serialized : '';
+        } catch (error) {
+            return search;
+        }
+    }
+
+    function canonicalHost(host) {
+        const name = String(host || '').toLowerCase();
+        return name.indexOf('www.') === 0 ? name.slice(4) : name;
+    }
+
     function canonicalLink(raw) {
         const normalized = normalizeLink(raw);
         if (!normalized) return '';
@@ -302,10 +336,10 @@
             if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
                 return normalized.toLowerCase();
             }
-            const host = parsed.hostname.toLowerCase();
+            const host = canonicalHost(parsed.hostname);
             let path = parsed.pathname || '/';
             if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
-            return 'https://' + host + path + parsed.search;
+            return 'https://' + host + path + stripTrackingSearch(parsed.search);
         } catch (error) {
             return normalized.toLowerCase();
         }
@@ -458,6 +492,84 @@
         return { changed, url: next };
     }
 
+    function cloneBookmarkFields(url) {
+        const migrated = migrateUrl(url || {});
+        return {
+            id: migrated.id,
+            name: migrated.name,
+            link: migrated.link,
+            folder: migrated.folder,
+            favorite: migrated.favorite,
+            createdAt: migrated.createdAt,
+            updatedAt: migrated.updatedAt,
+            order: migrated.order,
+            orderUpdatedAt: migrated.orderUpdatedAt
+        };
+    }
+
+    function snapshotUrlDelete(urls, id) {
+        const list = Array.isArray(urls) ? urls : [];
+        const index = list.findIndex((url) => url && url.id === id);
+        if (index === -1) return null;
+        return {
+            type: 'url',
+            index,
+            url: cloneBookmarkFields(list[index])
+        };
+    }
+
+    function restoreUrlDelete(urls, snapshot) {
+        const list = Array.isArray(urls) ? urls.slice() : [];
+        if (!snapshot || snapshot.type !== 'url' || !snapshot.url) return list;
+        if (list.some((url) => url && url.id === snapshot.url.id)) return list;
+        const restored = migrateUrl(snapshot.url, snapshot.index);
+        const index = Math.min(Math.max(0, Number(snapshot.index) || 0), list.length);
+        list.splice(index, 0, restored);
+        return list;
+    }
+
+    function snapshotFolderDelete(folders, urls, folderName, currentFolder) {
+        const name = String(folderName || '');
+        const list = Array.isArray(folders) ? folders : [];
+        return {
+            type: 'folder',
+            folderName: name,
+            folderIndex: list.indexOf(name),
+            currentFolder: currentFolder || '',
+            affected: (Array.isArray(urls) ? urls : [])
+                .filter((url) => url && url.folder === name)
+                .map((url) => ({
+                    id: url.id,
+                    folder: url.folder,
+                    updatedAt: url.updatedAt
+                }))
+        };
+    }
+
+    function restoreFolderDelete(folders, urls, snapshot, currentFolder) {
+        const nextFolders = Array.isArray(folders) ? folders.slice() : [];
+        const nextUrls = Array.isArray(urls) ? urls : [];
+        if (!snapshot || snapshot.type !== 'folder' || !snapshot.folderName) {
+            return { folders: nextFolders, urls: nextUrls, currentFolder: currentFolder || '' };
+        }
+        if (nextFolders.indexOf(snapshot.folderName) === -1) {
+            const index = snapshot.folderIndex >= 0 ? snapshot.folderIndex : nextFolders.length;
+            nextFolders.splice(Math.min(index, nextFolders.length), 0, snapshot.folderName);
+        }
+        const byId = new Map((snapshot.affected || []).map((item) => [item.id, item]));
+        nextUrls.forEach((url) => {
+            const rec = byId.get(url.id);
+            if (!rec) return;
+            url.folder = rec.folder;
+            url.updatedAt = rec.updatedAt;
+        });
+        return {
+            folders: nextFolders,
+            urls: nextUrls,
+            currentFolder: snapshot.currentFolder || currentFolder || ''
+        };
+    }
+
     function shouldUseKeepalive(body, force) {
         if (!force) return false;
         const size = typeof body === 'string' ? body.length : 0;
@@ -497,6 +609,12 @@
         orderTimestamp,
         normalizeLink,
         canonicalLink,
+        isTrackingQueryParam,
+        stripTrackingSearch,
+        snapshotUrlDelete,
+        restoreUrlDelete,
+        snapshotFolderDelete,
+        restoreFolderDelete,
         migrateUrl,
         mergeUrlLists,
         mergeFolders,

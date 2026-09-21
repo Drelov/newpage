@@ -136,13 +136,42 @@ async function run() {
 
     assert.strictEqual(api.canonicalLink('HTTP://GitHub.com/Drelov/newpage/'), 'https://github.com/Drelov/newpage');
     assert.strictEqual(api.canonicalLink('github.com/Drelov/newpage'), 'https://github.com/Drelov/newpage');
+    assert.strictEqual(api.canonicalLink('https://www.github.com/Drelov/newpage?utm_source=x&fbclid=1'), 'https://github.com/Drelov/newpage');
+    assert.strictEqual(api.canonicalLink('https://www.youtube.com/watch?v=abc&utm_campaign=share&si=zz'), 'https://youtube.com/watch?v=abc');
+    assert.strictEqual(api.isTrackingQueryParam('utm_medium'), true);
+    assert.strictEqual(api.isTrackingQueryParam('v'), false);
     const mergedDupes = api.mergeUrlLists(
         [api.migrateUrl({ id: 'a', link: 'https://github.com/Drelov/newpage', name: 'Local', updatedAt: 80 })],
-        [api.migrateUrl({ id: 'b', link: 'http://github.com/Drelov/newpage/', name: 'Cloud', updatedAt: 20 })]
+        [api.migrateUrl({ id: 'b', link: 'http://www.github.com/Drelov/newpage/?utm_source=mail', name: 'Cloud', updatedAt: 20 })]
     );
-    assert.strictEqual(mergedDupes.length, 1, 'http/https trailing-slash variants merge as one');
+    assert.strictEqual(mergedDupes.length, 1, 'www/http/utm variants merge as one');
     assert.strictEqual(mergedDupes[0].name, 'Local');
     assert.strictEqual(mergedDupes[0].id, 'a');
+
+    const deleteList = [
+        api.migrateUrl({ id: 'keep', link: 'https://keep.example', name: 'Keep', order: 0, updatedAt: 1 }),
+        api.migrateUrl({ id: 'gone', link: 'https://gone.example', name: 'Gone', order: 1, updatedAt: 2, folder: '工作' })
+    ];
+    const urlSnap = api.snapshotUrlDelete(deleteList, 'gone');
+    assert.strictEqual(urlSnap.index, 1);
+    const afterDelete = deleteList.filter((url) => url.id !== 'gone');
+    const undoneUrl = api.restoreUrlDelete(afterDelete, urlSnap);
+    assert.strictEqual(undoneUrl.length, 2);
+    assert.strictEqual(undoneUrl[1].id, 'gone');
+    assert.strictEqual(undoneUrl[1].folder, '工作');
+    assert.strictEqual(api.restoreUrlDelete(undoneUrl, urlSnap).length, 2, 'restore is idempotent');
+
+    const folderUrls = [
+        api.migrateUrl({ id: 'x', link: 'https://x.example', name: 'X', folder: '工作', updatedAt: 50 })
+    ];
+    const folderSnap = api.snapshotFolderDelete(['工作', '学习'], folderUrls, '工作', '工作');
+    folderUrls[0].folder = '';
+    folderUrls[0].updatedAt = 99;
+    const undoneFolder = api.restoreFolderDelete(['学习'], folderUrls, folderSnap, '全部');
+    assert.deepStrictEqual(undoneFolder.folders, ['工作', '学习']);
+    assert.strictEqual(undoneFolder.urls[0].folder, '工作');
+    assert.strictEqual(undoneFolder.urls[0].updatedAt, 50);
+    assert.strictEqual(undoneFolder.currentFolder, '工作');
 
     const changed = await api.updateVaultSecret(vault, 'correct horse', { newPassword: 'new-horse-battery' });
     assert.strictEqual(await api.decryptToken('new-horse-battery', changed.record), secret);
@@ -290,6 +319,13 @@ async function run() {
     assert.ok(new2.indexOf('theme-dark') !== -1);
     assert.ok(new2.indexOf('moveFocusedCard') !== -1);
     assert.ok(new2.indexOf('Alt + 方向键') !== -1);
+    assert.ok(new2.indexOf('setupPointerReorder') !== -1);
+    assert.ok(new2.indexOf('armUndo') !== -1);
+    assert.ok(new2.indexOf('id="toastAction"') !== -1);
+    assert.ok(new2.indexOf('trapModalFocus') !== -1);
+    assert.ok(new2.indexOf('addEventListener(\'storage\'') !== -1);
+    assert.ok(new2.indexOf('确定要删除') === -1, 'bookmark delete should use undo instead of confirm');
+    assert.ok(new2.indexOf('确定删除文件夹') === -1, 'folder delete should use undo instead of confirm');
 
     console.log('bookmark-site-account tests passed');
 }
