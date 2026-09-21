@@ -676,11 +676,38 @@
             margin: 8px 0;
         }
 
-        .drag-hint {
-            text-align: center;
-            color: #7d8da7;
-            font-size: 0.85rem;
-            margin: -4px 0 14px;
+        .undo-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 0 14px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: #4a6fa5;
+            color: white;
+            font-size: 0.92rem;
+        }
+
+        .undo-banner.show {
+            display: flex;
+        }
+
+        .undo-banner button {
+            flex-shrink: 0;
+            border: none;
+            background: rgba(255, 255, 255, 0.22);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .undo-banner button:hover,
+        .undo-banner button:focus-visible {
+            background: rgba(255, 255, 255, 0.34);
+            outline: none;
         }
 
         .action-btn {
@@ -997,7 +1024,7 @@
         .toast {
             position: fixed;
             left: 50%;
-            bottom: 24px;
+            bottom: 72px;
             transform: translateX(-50%) translateY(16px);
             min-width: 240px;
             max-width: min(90vw, 480px);
@@ -1180,8 +1207,8 @@
             background: rgba(155, 182, 227, 0.28);
         }
 
-        html.theme-dark .toast-action {
-            background: rgba(255, 255, 255, 0.16);
+        html.theme-dark .undo-banner {
+            background: #3d5a86;
         }
 
         html.theme-dark .url-button .url-name,
@@ -1249,6 +1276,10 @@
             </div>
 
             <p class="drag-hint">拖动卡片可调整顺序，也可拖到上方文件夹 / 星标 / 未分类。手机：长按后拖动排序或拖到文件夹，松手打开菜单。键盘：Alt + 方向键排序，Delete 删除后可撤销。</p>
+            <div class="undo-banner" id="undoBanner" hidden>
+                <span id="undoBannerMessage">已删除</span>
+                <button type="button" id="undoBannerBtn">撤销</button>
+            </div>
 
             <div class="folders-container" id="foldersContainer"></div>
 
@@ -1582,6 +1613,9 @@
                 toast: document.getElementById('toast'),
                 toastMessage: document.getElementById('toastMessage'),
                 toastAction: document.getElementById('toastAction'),
+                undoBanner: document.getElementById('undoBanner'),
+                undoBannerMessage: document.getElementById('undoBannerMessage'),
+                undoBannerBtn: document.getElementById('undoBannerBtn'),
                 resultCount: document.getElementById('resultCount'),
                 contextMenu: document.getElementById('contextMenu'),
                 folderMenu: document.getElementById('folderMenu'),
@@ -1873,28 +1907,41 @@
                 }, opts.duration || 2800);
             }
 
+            function showUndoBanner(message) {
+                if (!els.undoBanner) return;
+                if (els.undoBannerMessage) els.undoBannerMessage.textContent = message || '已删除，可撤销';
+                els.undoBanner.hidden = false;
+                els.undoBanner.classList.add('show');
+            }
+
+            function hideUndoBanner() {
+                if (!els.undoBanner) return;
+                els.undoBanner.hidden = true;
+                els.undoBanner.classList.remove('show');
+            }
+
             function clearPendingUndo() {
                 pendingUndo = null;
                 clearTimeout(undoTimer);
                 undoTimer = null;
+                hideUndoBanner();
             }
 
-            function armUndo(snapshot, restoreFn, message) {
+            function armUndo(snapshot, message) {
+                if (!snapshot) {
+                    showToast(message || '已删除', 'success');
+                    return;
+                }
                 clearPendingUndo();
                 pendingUndo = snapshot;
+                showUndoBanner(message);
                 undoTimer = setTimeout(() => {
-                    if (pendingUndo === snapshot) pendingUndo = null;
+                    if (pendingUndo === snapshot) clearPendingUndo();
                 }, 8000);
                 showToast(message, 'info', {
                     actionLabel: '撤销',
                     duration: 8000,
-                    onAction: () => {
-                        if (!pendingUndo) return;
-                        const current = pendingUndo;
-                        clearPendingUndo();
-                        restoreFn(current);
-                        showToast('已撤销', 'success');
-                    }
+                    onAction: () => undoLastChange()
                 });
             }
 
@@ -2747,7 +2794,7 @@
                 state.selectedUrlId = null;
                 hideMenus();
                 commitChange();
-                armUndo(snapshot, restoreDeletedUrl, '已删除“' + current.name + '”');
+                armUndo(snapshot, '已删除“' + current.name + '”');
             }
 
             function deleteFolder() {
@@ -2768,7 +2815,7 @@
                 if (state.currentFolder === folderName) state.currentFolder = '全部';
                 closeModal('editFolderModal');
                 commitChange();
-                armUndo(snapshot, restoreDeletedFolder, '已删除文件夹“' + folderName + '”');
+                armUndo(snapshot, '已删除文件夹“' + folderName + '”');
             }
 
             function toggleFavorite(id) {
@@ -3496,6 +3543,20 @@
                 bindModalSubmit('editFolderModal', editFolder);
                 setupDragAndDrop();
                 setupPointerReorder();
+                if (els.undoBannerBtn) {
+                    els.undoBannerBtn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        undoLastChange();
+                    });
+                }
+                if (els.undoBanner) {
+                    els.undoBanner.addEventListener('click', (event) => {
+                        if (event.target === els.undoBannerBtn) return;
+                        event.preventDefault();
+                        undoLastChange();
+                    });
+                }
 
                 window.addEventListener('pagehide', flushPendingCloudSave);
                 document.addEventListener('visibilitychange', () => {
@@ -3580,8 +3641,10 @@
                 assert('armUndo keeps snapshot', !!(pendingUndo && pendingUndo.type === 'url' && pendingUndo.url && pendingUndo.url.id === probeId));
                 assert('toast shows undo action', !!(els.toastAction && !els.toastAction.hidden && els.toast.classList.contains('has-action')));
                 if (els.toastAction) els.toastAction.click();
+                else if (els.undoBannerBtn) els.undoBannerBtn.click();
                 else undoLastChange();
                 assert('toast click restores probe', state.urls.some((url) => url.id === probeId && url.name === 'UndoProbe'));
+                assert('undo banner hides after restore', !els.undoBanner || els.undoBanner.hidden || !els.undoBanner.classList.contains('show'));
                 state.urls = backupUrls;
                 state.selectedUrlId = backupSelected;
                 clearPendingUndo();

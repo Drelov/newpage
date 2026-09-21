@@ -323,7 +323,8 @@ async function run() {
     assert.ok(new2.indexOf('armUndo') !== -1);
     assert.ok(new2.indexOf('id="toastAction"') !== -1);
     assert.ok(new2.indexOf('trapModalFocus') !== -1);
-    assert.ok(new2.indexOf('runUndoUiSelfTests') !== -1);
+    assert.ok(new2.indexOf('id="undoBanner"') !== -1);
+    assert.ok(new2.indexOf('undoLastChange') !== -1);
     assert.ok(new2.indexOf('els.toast.onclick = run') !== -1);
     assert.ok(new2.indexOf('确定要删除') === -1, 'bookmark delete should use undo instead of confirm');
     assert.ok(new2.indexOf('确定删除文件夹') === -1, 'folder delete should use undo instead of confirm');
