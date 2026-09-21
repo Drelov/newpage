@@ -1075,7 +1075,7 @@
                 <div class="storage-options">
                     <div class="storage-card github-card">
                         <h3><i class="storage-icon fas fa-user-lock"></i> 本站账号登录</h3>
-                        <p>用本站用户名和密码解锁当前浏览器里加密保存的访问令牌，再同步 GitHub Gist。本页是静态页面、没有云端账号服务器；换设备需要重新注册并粘贴一次令牌。</p>
+                        <p>用本站用户名和密码，解锁保存在当前浏览器的访问令牌，再同步 GitHub Gist。这是静态页、没有云端账号；换电脑需要重新注册并再贴一次令牌。</p>
 
                         <form id="githubLoginForm" class="login-form" autocomplete="off">
                             <div id="authModeSwitch" class="auth-mode-switch">
@@ -1099,7 +1099,7 @@
                                     <input type="password" class="storage-input" id="sitePasswordConfirm" name="site-password-confirm" placeholder="再输入一次本站密码" autocomplete="new-password" spellcheck="false">
 
                                     <label class="field-label" for="githubToken">个人访问令牌</label>
-                                    <input type="password" class="storage-input" id="githubToken" name="github-pat" placeholder="ghp_ 或 github_pat_ 开头，只在注册/绑定时粘贴一次" autocomplete="off" spellcheck="false">
+                                    <input type="password" class="storage-input" id="githubToken" name="github-pat" placeholder="ghp_ 或 github_pat_，只粘贴一次" autocomplete="off" spellcheck="false">
                                     <p class="token-optional-hint" id="tokenOptionalHint" hidden>检测到本机已有令牌，此项可留空。</p>
 
                                     <p class="auth-warning" role="note">请记住本站密码：忘记后无法解密，只能重新粘贴个人访问令牌再注册。不要填写 GitHub 网站登录密码；GitHub 也禁止用网站密码调用 API。本站密码和令牌都不会作为 GitHub 登录密码发送。</p>
@@ -1704,7 +1704,7 @@
                     if (state.authMode === 'register' && canSkipToken) {
                         els.githubTokenInput.placeholder = '可留空，将加密已有令牌';
                     } else {
-                        els.githubTokenInput.placeholder = 'ghp_ 或 github_pat_ 开头，只在注册/绑定时粘贴一次';
+                        els.githubTokenInput.placeholder = 'ghp_ 或 github_pat_，只粘贴一次';
                     }
                 }
                 if (els.githubUsernameInput && state.githubUsername && !els.githubUsernameInput.value) {
@@ -2284,6 +2284,16 @@
                 showToast('文件夹已删除', 'success');
             }
 
+            function friendlyGitHubError(error) {
+                const raw = String((error && error.message) || error || '未知错误');
+                if (/bad credentials/i.test(raw) || /\b401\b/.test(raw)) {
+                    return '访问令牌无效或缺少 gist 权限';
+                }
+                if (/not found/i.test(raw) || /\b404\b/.test(raw)) return '未找到对应 Gist';
+                if (/rate limit/i.test(raw) || /\b403\b/.test(raw)) return 'GitHub 接口暂时不可用（权限或频率限制）';
+                return raw;
+            }
+
             function authHeaders(token) {
                 return {
                     Authorization: 'Bearer ' + token,
@@ -2366,7 +2376,7 @@
                         await loadFromGitHub({ auto: true, merge: true, gistId: gistId });
                     }
                 } catch (error) {
-                    showStatus('本站账号已就绪。自动同步 GitHub 失败: ' + error.message, 'info', { expandStorage: true });
+                    showStatus('本站账号已就绪。自动同步 GitHub 失败: ' + friendlyGitHubError(error), 'info', { expandStorage: true });
                 }
             }
 
@@ -2553,7 +2563,7 @@
                                     const gistId = await resolveBookmarkGist({ auto: true, silent: true });
                                     if (gistId) await loadFromGitHub({ auto: true, merge: true, gistId: gistId });
                                 } catch (error) {
-                                    showStatus('已登录，但自动查找 Gist 失败: ' + error.message, 'error', { expandStorage: true });
+                                    showStatus('已登录，但自动查找 Gist 失败: ' + friendlyGitHubError(error), 'error', { expandStorage: true });
                                 }
                                 resolve();
                                 return;
@@ -2672,7 +2682,7 @@
                     updateAuthUI();
                     if (!opts.silent) showStatus('数据已同步到 GitHub Gist', 'success');
                 } catch (error) {
-                    showStatus('云端保存失败: ' + error.message, 'error', { expandStorage: !opts.silent });
+                    showStatus('云端保存失败: ' + friendlyGitHubError(error), 'error', { expandStorage: !opts.silent });
                 } finally {
                     hideLoader();
                 }
@@ -2733,7 +2743,7 @@
                         );
                     }
                 } catch (error) {
-                    showStatus('加载失败: ' + error.message, 'error', { expandStorage: !opts.auto });
+                    showStatus('加载失败: ' + friendlyGitHubError(error), 'error', { expandStorage: !opts.auto });
                 } finally {
                     hideLoader();
                 }
