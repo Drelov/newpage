@@ -7,10 +7,13 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     const VAULT_KEY = 'bookmarkSiteVault';
     const LEGACY_TOKEN_KEY = 'githubToken';
+    const SESSION_TOKEN_KEY = 'bookmarkSiteSessionToken';
     const GIST_DESCRIPTION = '网址管理器数据';
     const BOOKMARK_FILENAME = 'urls.json';
     const PBKDF2_ITERATIONS = 210000;
     const GIST_LIST_URL = 'https://api.github.com/gists?per_page=100';
+    const RESERVED_FOLDERS = ['全部', '星标', '未分类'];
+    const KEEPALIVE_MAX_BYTES = 60000;
 
     function getCrypto() {
         const cryptoObj = globalThis.crypto;
@@ -178,13 +181,207 @@
         return String(store.getItem(LEGACY_TOKEN_KEY) || '').trim();
     }
 
+    function sessionStore(storage) {
+        if (storage) return storage;
+        try {
+            return typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function readSessionToken(storage) {
+        const store = sessionStore(storage);
+        if (!store || typeof store.getItem !== 'function') return '';
+        try {
+            return String(store.getItem(SESSION_TOKEN_KEY) || '').trim();
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function writeSessionToken(token, storage) {
+        const store = sessionStore(storage);
+        const value = String(token || '').trim();
+        if (!store) return value;
+        try {
+            if (value) store.setItem(SESSION_TOKEN_KEY, value);
+            else store.removeItem(SESSION_TOKEN_KEY);
+        } catch (error) {
+            // sessionStorage can throw in private mode; memory token still works for this page.
+        }
+        return value;
+    }
+
+    function clearSessionToken(storage) {
+        writeSessionToken('', storage);
+    }
+
+    function parseTimestamp(value) {
+        if (value == null || value === '') return 0;
+        if (typeof value === 'number') {
+            return Number.isFinite(value) && value > 0 ? value : 0;
+        }
+        const str = String(value).trim();
+        if (!str) return 0;
+        if (/^-?\d+(\.\d+)?$/.test(str)) {
+            const num = Number(str);
+            return Number.isFinite(num) && num > 0 ? num : 0;
+        }
+        const parsed = Date.parse(str);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    }
+
+    function contentTimestamp(url) {
+        return parseTimestamp(url && url.updatedAt);
+    }
+
+    function orderTimestamp(url) {
+        return parseTimestamp(url && url.orderUpdatedAt);
+    }
+
+    function uid() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
+    function hostnameOf(link) {
+        try {
+            return new URL(link).hostname;
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function normalizeLink(raw) {
+        const trimmed = String(raw || '').trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (/^\/\//.test(trimmed)) return 'https:' + trimmed;
+        return 'https://' + trimmed;
+    }
+
+    function migrateUrl(raw, index) {
+        const link = normalizeLink(raw && raw.link);
+        const orderRaw = raw && raw.order;
+        const orderNum = Number(orderRaw);
+        return {
+            id: (raw && raw.id) || uid(),
+            name: String((raw && raw.name) || hostnameOf(link) || '未命名').trim(),
+            link,
+            folder: (raw && raw.folder) || '',
+            favorite: !!(raw && raw.favorite),
+            createdAt: parseTimestamp(raw && raw.createdAt),
+            updatedAt: parseTimestamp(raw && raw.updatedAt),
+            order: Number.isFinite(orderNum) ? orderNum : (typeof index === 'number' ? index : 0),
+            orderUpdatedAt: parseTimestamp(raw && raw.orderUpdatedAt)
+        };
+    }
+
+    function mergeUrlLists(localUrls, remoteUrls) {
+        const merged = (localUrls || []).map((url, index) => migrateUrl(url, index));
+        const byId = new Map(merged.map((url) => [url.id, url]));
+        const byLink = new Map();
+        merged.forEach((url) => {
+            if (url.link) byLink.set(url.link, url);
+        });
+
+        (remoteUrls || []).forEach((raw, index) => {
+            const remote = migrateUrl(raw, index);
+            let local = byId.get(remote.id);
+            if (!local && remote.link) local = byLink.get(remote.link);
+            if (!local) {
+                merged.push(remote);
+                byId.set(remote.id, remote);
+                if (remote.link) byLink.set(remote.link, remote);
+                return;
+            }
+
+            if (contentTimestamp(remote) > contentTimestamp(local)) {
+                const keepId = local.id;
+                const keepCreated = local.createdAt || remote.createdAt;
+                const keepOrder = local.order;
+                const keepOrderAt = local.orderUpdatedAt;
+                Object.assign(local, remote, {
+                    id: keepId,
+                    createdAt: keepCreated,
+                    order: keepOrder,
+                    orderUpdatedAt: keepOrderAt
+                });
+                if (local.link) byLink.set(local.link, local);
+            }
+
+            if (orderTimestamp(remote) > orderTimestamp(local)) {
+                local.order = remote.order;
+                local.orderUpdatedAt = remote.orderUpdatedAt;
+            }
+        });
+
+        merged.sort((a, b) => {
+            const orderDiff = (Number(a.order) || 0) - (Number(b.order) || 0);
+            if (orderDiff !== 0) return orderDiff;
+            return String(a.id || '').localeCompare(String(b.id || ''));
+        });
+        return merged;
+    }
+
+    function mergeFolders(localFolders, remoteFolders) {
+        const out = [];
+        const seen = new Set();
+        (localFolders || []).concat(remoteFolders || []).forEach((folder) => {
+            if (!folder || RESERVED_FOLDERS.indexOf(folder) !== -1 || seen.has(folder)) return;
+            seen.add(folder);
+            out.push(folder);
+        });
+        return out;
+    }
+
+    function applyReorder(urls, orderedIds, now) {
+        const list = Array.isArray(urls) ? urls : [];
+        const ids = Array.isArray(orderedIds) ? orderedIds : [];
+        if (!ids.length) return { urls: list, changed: false };
+        const stamp = parseTimestamp(now) || Date.now();
+        const visibleSet = new Set(ids);
+        const byId = new Map(list.map((url) => [url.id, url]));
+        const next = [];
+        let visIndex = 0;
+        list.forEach((url) => {
+            if (visibleSet.has(url.id)) {
+                const moved = byId.get(ids[visIndex++]);
+                if (moved) next.push(moved);
+            } else {
+                next.push(url);
+            }
+        });
+        let changed = false;
+        next.forEach((url, index) => {
+            if (url.order !== index) {
+                url.order = index;
+                url.orderUpdatedAt = stamp;
+                changed = true;
+            } else {
+                url.order = index;
+            }
+        });
+        return { urls: next, changed };
+    }
+
+    function shouldUseKeepalive(body, force) {
+        if (!force) return false;
+        const size = typeof body === 'string' ? body.length : 0;
+        return size > 0 && size <= KEEPALIVE_MAX_BYTES;
+    }
+
     return {
         VAULT_KEY,
         LEGACY_TOKEN_KEY,
+        SESSION_TOKEN_KEY,
         GIST_DESCRIPTION,
         BOOKMARK_FILENAME,
         PBKDF2_ITERATIONS,
         GIST_LIST_URL,
+        RESERVED_FOLDERS,
+        KEEPALIVE_MAX_BYTES,
         toBase64,
         fromBase64,
         encryptToken,
@@ -195,6 +392,18 @@
         findBookmarkGist,
         readVault,
         writeVault,
-        readLegacyPlaintextToken
+        readLegacyPlaintextToken,
+        readSessionToken,
+        writeSessionToken,
+        clearSessionToken,
+        parseTimestamp,
+        contentTimestamp,
+        orderTimestamp,
+        normalizeLink,
+        migrateUrl,
+        mergeUrlLists,
+        mergeFolders,
+        applyReorder,
+        shouldUseKeepalive
     };
 });

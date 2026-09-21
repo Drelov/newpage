@@ -198,14 +198,15 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 15px;
-            max-height: 240px;
+            max-height: 420px;
             overflow-y: auto;
             padding: 10px;
             transition: max-height 0.5s ease;
         }
 
         .url-buttons-container.expanded {
-            max-height: min(70vh, 2400px);
+            max-height: none;
+            overflow-y: visible;
         }
 
         .url-button {
@@ -1115,7 +1116,7 @@
 
                         <div id="loggedInPanel" class="logged-in-panel" hidden>
                             <p class="logged-in-name" id="loggedInName">已登录</p>
-                            <p class="logged-in-hint" id="loggedInHint">访问令牌只在内存中，本机只保留加密保险柜。</p>
+                            <p class="logged-in-hint" id="loggedInHint">访问令牌只在本标签页会话中（刷新可保持登录），本机只保留加密保险柜。</p>
                         </div>
 
                         <details class="advanced-options" id="advancedOptions">
@@ -1124,19 +1125,7 @@
                             <label class="field-label" for="gistId">Gist ID（可选）</label>
                             <input type="text" class="storage-input" id="gistId" placeholder="留空即可，登录后自动查找或首次保存时创建" autocomplete="off" spellcheck="false">
 
-                            <label class="field-label" for="githubClientId">OAuth App Client ID（可选）</label>
-                            <input type="text" class="storage-input" id="githubClientId" placeholder="用于「用 GitHub 登录」设备授权" autocomplete="off" spellcheck="false">
-                            <p class="device-hint" id="deviceFlowHint">未填写时设备登录不可用。请自行注册带 gist 权限的 GitHub OAuth App 并填入 Client ID；本页不需要、也不会保存 client_secret。</p>
-                            <button class="action-btn ghost-btn" id="deviceLoginBtn" type="button" disabled>
-                                <i class="fab fa-github"></i> 用 GitHub 登录
-                            </button>
-
-                            <div id="deviceFlowPanel" class="device-flow-panel" hidden>
-                                <p>请在 GitHub 打开验证页并输入代码：</p>
-                                <p class="device-code" id="deviceUserCode"></p>
-                                <p><a id="deviceVerifyLink" href="https://github.com/login/device" target="_blank" rel="noopener noreferrer">https://github.com/login/device</a></p>
-                                <button type="button" class="action-btn ghost-btn" id="cancelDeviceBtn">取消设备登录</button>
-                            </div>
+                            <p class="device-hint" id="deviceFlowHint">「用 GitHub 登录」在 GitHub Pages 静态站点不可用（浏览器会拦截设备授权接口）。请用本站密码 + 个人访问令牌注册。</p>
                         </details>
 
                         <div id="githubStatus" class="status-message info">
@@ -1267,12 +1256,14 @@
                 username: 'githubUsername',
                 clientId: 'githubClientId',
                 vault: 'bookmarkSiteVault',
+                session: (SiteAccount && SiteAccount.SESSION_TOKEN_KEY) || 'bookmarkSiteSessionToken',
                 urls: 'bookmarkUrls',
                 folders: 'folders',
                 engine: 'searchEngine',
                 expanded: 'urlsExpanded',
                 folder: 'currentFolder'
             };
+            const SELF_TEST = /(?:^|[?&])selftest=1(?:&|$)/.test(location.search);
 
             const DEFAULT_FOLDERS = ['常用', '工作', '学习', '娱乐'];
             const RESERVED_FOLDERS = ['全部', '星标', '未分类'];
@@ -1301,10 +1292,9 @@
             };
 
             let cloudSaveTimer = null;
+            let cloudSavePending = false;
             let toastTimer = null;
             let pressTimer = null;
-            let devicePollTimer = null;
-            let deviceAbort = false;
 
             const els = {
                 urlButtonsContainer: document.getElementById('urlButtonsContainer'),
@@ -1320,12 +1310,7 @@
                 sitePasswordConfirmInput: document.getElementById('sitePasswordConfirm'),
                 githubTokenInput: document.getElementById('githubToken'),
                 gistIdInput: document.getElementById('gistId'),
-                githubClientIdInput: document.getElementById('githubClientId'),
-                deviceLoginBtn: document.getElementById('deviceLoginBtn'),
                 deviceFlowHint: document.getElementById('deviceFlowHint'),
-                deviceFlowPanel: document.getElementById('deviceFlowPanel'),
-                deviceUserCode: document.getElementById('deviceUserCode'),
-                deviceVerifyLink: document.getElementById('deviceVerifyLink'),
                 logoutBtn: document.getElementById('logoutBtn'),
                 authModeSwitch: document.getElementById('authModeSwitch'),
                 showLoginModeBtn: document.getElementById('showLoginModeBtn'),
@@ -1396,24 +1381,11 @@
             }
 
             function migrateUrl(raw, index) {
-                const link = normalizeLink(raw && raw.link);
-                const createdAt = (raw && raw.createdAt) || Date.now();
-                const orderRaw = raw && raw.order;
-                const orderNum = Number(orderRaw);
-                return {
-                    id: (raw && raw.id) || uid(),
-                    name: String((raw && raw.name) || hostnameOf(link) || '未命名').trim(),
-                    link,
-                    folder: (raw && raw.folder) || '',
-                    favorite: !!(raw && raw.favorite),
-                    createdAt,
-                    updatedAt: (raw && raw.updatedAt) || createdAt,
-                    order: Number.isFinite(orderNum) ? orderNum : (typeof index === 'number' ? index : Date.now())
-                };
+                return SiteAccount.migrateUrl(raw, index);
             }
 
             function timestampOf(url) {
-                return Number(url && url.updatedAt) || Number(url && url.createdAt) || 0;
+                return SiteAccount.contentTimestamp(url);
             }
 
             function touchUrl(url) {
@@ -1425,52 +1397,12 @@
                 return state.urls.reduce((max, url) => Math.max(max, Number(url.order) || 0), -1) + 1;
             }
 
-            function reindexOrders(urls) {
-                urls.forEach((url, index) => {
-                    url.order = index;
-                });
-                return urls;
-            }
-
             function mergeUrlLists(localUrls, remoteUrls) {
-                const merged = (localUrls || []).map((url, index) => migrateUrl(url, index));
-                const byId = new Map(merged.map((url) => [url.id, url]));
-                const byLink = new Map();
-                merged.forEach((url) => {
-                    if (url.link) byLink.set(url.link, url);
-                });
-
-                (remoteUrls || []).forEach((raw, index) => {
-                    const remote = migrateUrl(raw, index);
-                    let local = byId.get(remote.id);
-                    if (!local && remote.link) local = byLink.get(remote.link);
-                    if (!local) {
-                        merged.push(remote);
-                        byId.set(remote.id, remote);
-                        if (remote.link) byLink.set(remote.link, remote);
-                        return;
-                    }
-                    if (timestampOf(remote) > timestampOf(local)) {
-                        const keepId = local.id;
-                        const keepCreated = local.createdAt || remote.createdAt;
-                        Object.assign(local, remote, { id: keepId, createdAt: keepCreated });
-                        if (local.link) byLink.set(local.link, local);
-                    }
-                });
-
-                merged.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-                return merged;
+                return SiteAccount.mergeUrlLists(localUrls, remoteUrls);
             }
 
             function mergeFolders(localFolders, remoteFolders) {
-                const out = [];
-                const seen = new Set();
-                (localFolders || []).concat(remoteFolders || []).forEach((folder) => {
-                    if (!folder || RESERVED_FOLDERS.includes(folder) || seen.has(folder)) return;
-                    seen.add(folder);
-                    out.push(folder);
-                });
-                return out;
+                return SiteAccount.mergeFolders(localFolders, remoteFolders);
             }
 
             function ensureFoldersFromUrls() {
@@ -1479,6 +1411,18 @@
                         state.folders.push(url.folder);
                     }
                 });
+            }
+
+            function persistSessionToken() {
+                if (!SiteAccount) return;
+                if (state.githubToken) SiteAccount.writeSessionToken(state.githubToken, sessionStorage);
+                else SiteAccount.clearSessionToken(sessionStorage);
+            }
+
+            function restoreSessionToken() {
+                if (!SiteAccount) return;
+                const token = SiteAccount.readSessionToken(sessionStorage);
+                if (token) state.githubToken = token;
             }
 
             function persistAuthMeta() {
@@ -1507,13 +1451,14 @@
                     state.legacyPlaintextToken = '';
                     state.githubToken = '';
                     state.authMode = 'login';
-                    return;
+                } else {
+                    state.legacyPlaintextToken = SiteAccount
+                        ? SiteAccount.readLegacyPlaintextToken(localStorage)
+                        : (localStorage.getItem(STORAGE_KEYS.token) || '');
+                    state.githubToken = '';
+                    state.authMode = 'register';
                 }
-                state.legacyPlaintextToken = SiteAccount
-                    ? SiteAccount.readLegacyPlaintextToken(localStorage)
-                    : (localStorage.getItem(STORAGE_KEYS.token) || '');
-                state.githubToken = '';
-                state.authMode = 'register';
+                restoreSessionToken();
             }
 
             function persistLocal() {
@@ -1550,7 +1495,6 @@
 
                 state.urls.forEach((url, index) => {
                     if (!Number.isFinite(Number(url.order))) url.order = index;
-                    if (!url.updatedAt) url.updatedAt = url.createdAt || Date.now();
                 });
                 ensureFoldersFromUrls();
             }
@@ -1634,20 +1578,11 @@
             }
 
             function readClientId() {
-                return (els.githubClientIdInput && els.githubClientIdInput.value ? els.githubClientIdInput.value : '').trim();
+                return '';
             }
 
             function updateDeviceLoginButton() {
-                const clientId = readClientId();
-                state.githubClientId = clientId;
-                const loggedIn = !!state.githubToken;
-                if (els.deviceLoginBtn) {
-                    els.deviceLoginBtn.hidden = loggedIn;
-                    els.deviceLoginBtn.disabled = loggedIn || !clientId;
-                }
-                if (els.deviceFlowHint) {
-                    els.deviceFlowHint.hidden = loggedIn;
-                }
+                if (els.deviceFlowHint) els.deviceFlowHint.hidden = false;
             }
 
             function setAuthMode(mode) {
@@ -1695,7 +1630,7 @@
                 if (els.loggedInHint) {
                     const gistHint = state.currentGistId ? '已记住 Gist，无需每次填写。' : '未指定 Gist ID 时会自动查找或创建。';
                     const githubHint = state.githubLogin ? ' GitHub 用户 ' + state.githubLogin + '。' : '';
-                    els.loggedInHint.textContent = '访问令牌只在内存中，本机只保留加密保险柜。' + gistHint + githubHint;
+                    els.loggedInHint.textContent = '访问令牌只在本标签页会话中（刷新可保持登录），本机只保留加密保险柜。' + gistHint + githubHint;
                 }
                 if (els.logoutBtn) els.logoutBtn.disabled = !loggedIn;
                 if (els.githubTokenInput) {
@@ -1709,9 +1644,6 @@
                 }
                 if (els.githubUsernameInput && state.githubUsername && !els.githubUsernameInput.value) {
                     els.githubUsernameInput.value = state.githubUsername;
-                }
-                if (els.githubClientIdInput && state.githubClientId && !els.githubClientIdInput.value) {
-                    els.githubClientIdInput.value = state.githubClientId;
                 }
                 if (els.gistIdInput && state.currentGistId && !els.gistIdInput.value) {
                     els.gistIdInput.value = state.currentGistId;
@@ -1805,8 +1737,20 @@
 
             function scheduleCloudSave(silent) {
                 if (!state.githubToken) return;
+                cloudSavePending = true;
                 clearTimeout(cloudSaveTimer);
-                cloudSaveTimer = setTimeout(() => saveToGitHub({ silent: silent !== false }), 700);
+                cloudSaveTimer = setTimeout(() => {
+                    cloudSaveTimer = null;
+                    saveToGitHub({ silent: silent !== false });
+                }, 700);
+            }
+
+            function flushPendingCloudSave() {
+                if (!state.githubToken) return;
+                if (!cloudSavePending && !cloudSaveTimer) return;
+                clearTimeout(cloudSaveTimer);
+                cloudSaveTimer = null;
+                saveToGitHub({ silent: true, keepalive: true });
             }
 
             function renderFolders() {
@@ -1988,28 +1932,9 @@
                 const currentVisible = getVisibleUrls().map((url) => url.id);
                 if (currentVisible.length === ids.length && currentVisible.every((id, index) => id === ids[index])) return;
 
-                const visibleSet = new Set(ids);
-                const byId = new Map(state.urls.map((url) => [url.id, url]));
-                const next = [];
-                let visIndex = 0;
-                state.urls.forEach((url) => {
-                    if (visibleSet.has(url.id)) {
-                        const moved = byId.get(ids[visIndex++]);
-                        if (moved) next.push(moved);
-                    } else {
-                        next.push(url);
-                    }
-                });
-                const now = Date.now();
-                next.forEach((url, index) => {
-                    if (url.order !== index) {
-                        url.order = index;
-                        url.updatedAt = now;
-                    } else {
-                        url.order = index;
-                    }
-                });
-                state.urls = next;
+                const result = SiteAccount.applyReorder(state.urls, ids, Date.now());
+                if (!result.changed) return;
+                state.urls = result.urls;
                 persistLocal();
                 scheduleCloudSave(true);
             }
@@ -2086,7 +2011,16 @@
                     return;
                 }
 
-                state.urls.push(migrateUrl({ name, link, folder, order: nextOrder() }));
+                const now = Date.now();
+                state.urls.push(migrateUrl({
+                    name,
+                    link,
+                    folder,
+                    order: nextOrder(),
+                    createdAt: now,
+                    updatedAt: now,
+                    orderUpdatedAt: now
+                }));
                 if (folder) state.currentFolder = folder;
                 document.getElementById('urlName').value = '';
                 document.getElementById('urlLink').value = '';
@@ -2395,7 +2329,6 @@
                 const confirm = els.sitePasswordConfirmInput.value;
                 const token = readRegisterToken();
                 const gistId = (els.gistIdInput.value || '').trim();
-                state.githubClientId = readClientId();
 
                 if (!username) {
                     showStatus('请填写本站用户名', 'error', { expandStorage: true });
@@ -2427,6 +2360,7 @@
                     SiteAccount.writeVault(record, localStorage);
                     state.siteVault = record;
                     state.githubToken = token;
+                    persistSessionToken();
                     state.githubUsername = username;
                     state.legacyPlaintextToken = '';
                     state.pendingToken = '';
@@ -2474,6 +2408,7 @@
                     const token = await SiteAccount.decryptToken(password, vault);
                     state.siteVault = vault;
                     state.githubToken = token;
+                    persistSessionToken();
                     state.githubUsername = vault.username || username;
                     if (vault.gistId) rememberGistId(vault.gistId);
                     clearPasswordFields();
@@ -2495,137 +2430,16 @@
                 await loginWithSitePassword();
             }
 
-            function cancelDeviceFlow() {
-                deviceAbort = true;
-                if (devicePollTimer) {
-                    clearTimeout(devicePollTimer);
-                    devicePollTimer = null;
-                }
-                if (els.deviceFlowPanel) els.deviceFlowPanel.hidden = true;
-            }
-
             function logout() {
                 if (!confirm('确定退出登录吗？将从内存清除访问令牌。加密保险柜仍留在本机，下次用本站用户名和密码即可解锁。收藏数据不会删除。')) return;
-                cancelDeviceFlow();
                 state.githubToken = '';
+                persistSessionToken();
                 state.githubLogin = '';
                 state.pendingToken = '';
                 clearPasswordFields();
                 setAuthMode(state.siteVault ? 'login' : 'register');
                 updateAuthUI();
                 showStatus('已退出登录，收藏仍留在本机', 'info');
-            }
-
-            async function pollDeviceToken(clientId, device) {
-                const interval = Math.max(5, Number(device.interval) || 5) * 1000;
-                const deadline = Date.now() + (Number(device.expires_in) || 900) * 1000;
-
-                return new Promise((resolve, reject) => {
-                    const tick = async () => {
-                        if (deviceAbort) {
-                            reject(new Error('已取消设备登录'));
-                            return;
-                        }
-                        if (Date.now() > deadline) {
-                            reject(new Error('设备授权已过期，请重试'));
-                            return;
-                        }
-                        try {
-                            const response = await fetch('https://github.com/login/oauth/access_token', {
-                                method: 'POST',
-                                headers: {
-                                    Accept: 'application/json',
-                                    'Content-Type': 'application/x-www-form-urlencoded'
-                                },
-                                body: 'client_id=' + encodeURIComponent(clientId) +
-                                    '&device_code=' + encodeURIComponent(device.device_code) +
-                                    '&grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:device_code')
-                            });
-                            const data = await response.json();
-                            if (data.access_token) {
-                                els.deviceFlowPanel.hidden = true;
-                                if (!state.siteVault) {
-                                    state.pendingToken = data.access_token;
-                                    state.githubToken = '';
-                                    setAuthMode('register');
-                                    showStatus('已获得访问令牌。请设置本站用户名和密码加密保存（不要填 GitHub 登录密码）', 'success', { expandStorage: true });
-                                    persistAuthMeta();
-                                    updateAuthUI();
-                                    resolve();
-                                    return;
-                                }
-                                state.githubToken = data.access_token;
-                                persistAuthMeta();
-                                await refreshUsernameFromApi();
-                                updateAuthUI();
-                                showStatus('已通过 GitHub 设备授权登录。新令牌仅在本次有效；要写入保险柜请用「注册」重新绑定', 'success');
-                                try {
-                                    const gistId = await resolveBookmarkGist({ auto: true, silent: true });
-                                    if (gistId) await loadFromGitHub({ auto: true, merge: true, gistId: gistId });
-                                } catch (error) {
-                                    showStatus('已登录，但自动查找 Gist 失败: ' + friendlyGitHubError(error), 'error', { expandStorage: true });
-                                }
-                                resolve();
-                                return;
-                            }
-                            if (data.error === 'authorization_pending') {
-                                devicePollTimer = setTimeout(tick, interval);
-                                return;
-                            }
-                            if (data.error === 'slow_down') {
-                                devicePollTimer = setTimeout(tick, interval + 5000);
-                                return;
-                            }
-                            reject(new Error(data.error_description || data.error || '设备授权失败'));
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-                    devicePollTimer = setTimeout(tick, interval);
-                });
-            }
-
-            async function startDeviceFlow() {
-                const clientId = readClientId();
-                if (!clientId) {
-                    showStatus('请先填写 OAuth App 的 Client ID（需 gist 权限）', 'error', { expandStorage: true });
-                    return;
-                }
-                state.githubClientId = clientId;
-                persistAuthMeta();
-                deviceAbort = false;
-                showLoader();
-                try {
-                    const response = await fetch('https://github.com/login/device/code', {
-                        method: 'POST',
-                        headers: {
-                            Accept: 'application/json',
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: 'client_id=' + encodeURIComponent(clientId) + '&scope=gist'
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error_description || data.error || data.message || '无法开始设备授权');
-                    hideLoader();
-                    els.deviceFlowPanel.hidden = false;
-                    els.deviceUserCode.textContent = data.user_code;
-                    if (data.verification_uri) {
-                        els.deviceVerifyLink.href = data.verification_uri;
-                        els.deviceVerifyLink.textContent = data.verification_uri;
-                    }
-                    showStatus('请在 GitHub 输入代码 ' + data.user_code, 'info');
-                    await pollDeviceToken(clientId, data);
-                } catch (error) {
-                    const blocked = /Failed to fetch|NetworkError|CORS|Load failed/i.test(String(error && error.message));
-                    showStatus(
-                        '设备登录失败: ' + error.message +
-                        (blocked ? ' 浏览器可能拦截了 GitHub 设备授权接口，请改用个人访问令牌绑定。' : ''),
-                        'error',
-                        { expandStorage: true }
-                    );
-                } finally {
-                    hideLoader();
-                }
             }
 
             function applyCloudData(parsedUrls, parsedFolders, replace) {
@@ -2638,7 +2452,6 @@
                     state.urls = mergeUrlLists(state.urls, remoteUrls);
                     state.folders = mergeFolders(state.folders, remoteFolders);
                 }
-                reindexOrders(state.urls);
                 ensureFoldersFromUrls();
             }
 
@@ -2647,10 +2460,12 @@
                 persistLocal();
                 const token = currentToken();
                 if (!token) {
+                    cloudSavePending = false;
                     if (!opts.silent) showStatus('已保存到本机。请先登录后再云端同步', 'info', { expandStorage: true });
                     return;
                 }
 
+                cloudSavePending = false;
                 if (!opts.silent) showLoader();
                 const payload = {
                     description: SiteAccount ? SiteAccount.GIST_DESCRIPTION : '网址管理器数据',
@@ -2660,19 +2475,24 @@
                         'folders.json': { content: JSON.stringify(state.folders, null, 2) }
                     }
                 };
+                const body = JSON.stringify(payload);
 
                 try {
                     let gistId = currentGistId();
                     if (!gistId) {
                         gistId = await resolveBookmarkGist({ silent: true, auto: true });
                     }
+                    const fetchOpts = {
+                        method: gistId ? 'PATCH' : 'POST',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders(token)),
+                        body
+                    };
+                    if (SiteAccount && SiteAccount.shouldUseKeepalive(body, !!opts.keepalive)) {
+                        fetchOpts.keepalive = true;
+                    }
                     const response = await fetch(
                         gistId ? 'https://api.github.com/gists/' + gistId : 'https://api.github.com/gists',
-                        {
-                            method: gistId ? 'PATCH' : 'POST',
-                            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders(token)),
-                            body: JSON.stringify(payload)
-                        }
+                        fetchOpts
                     );
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.message || '保存失败');
@@ -2682,6 +2502,7 @@
                     updateAuthUI();
                     if (!opts.silent) showStatus('数据已同步到 GitHub Gist', 'success');
                 } catch (error) {
+                    cloudSavePending = true;
                     showStatus('云端保存失败: ' + friendlyGitHubError(error), 'error', { expandStorage: !opts.silent });
                 } finally {
                     hideLoader();
@@ -2761,7 +2582,6 @@
             function saveStorageMethod() {
                 const gistId = els.gistIdInput.value.trim();
                 const username = els.githubUsernameInput.value.trim();
-                state.githubClientId = readClientId();
                 if (gistId) {
                     state.currentGistId = gistId;
                 }
@@ -2799,7 +2619,6 @@
                         if (!Array.isArray(incomingUrls)) throw new Error('备份中没有 urls 数组');
                         state.urls = mergeUrlLists(state.urls, incomingUrls);
                         state.folders = mergeFolders(state.folders, incomingFolders);
-                        reindexOrders(state.urls);
                         ensureFoldersFromUrls();
                         commitChange();
                         showStatus('备份已导入并合并', 'success');
@@ -2843,16 +2662,6 @@
                     els.showRegisterModeBtn.addEventListener('click', () => setAuthMode('register'));
                 }
                 document.getElementById('logoutBtn').addEventListener('click', logout);
-                document.getElementById('deviceLoginBtn').addEventListener('click', startDeviceFlow);
-                document.getElementById('cancelDeviceBtn').addEventListener('click', () => {
-                    cancelDeviceFlow();
-                    showStatus('已取消设备登录', 'info');
-                });
-                els.githubClientIdInput.addEventListener('input', () => {
-                    state.githubClientId = readClientId();
-                    persistAuthMeta();
-                    updateDeviceLoginButton();
-                });
                 document.getElementById('exportBtn').addEventListener('click', exportBackup);
                 document.getElementById('importBtn').addEventListener('click', () => els.importFile.click());
                 els.importFile.addEventListener('change', (event) => {
@@ -2927,6 +2736,11 @@
                 bindModalSubmit('addFolderModal', addFolder);
                 bindModalSubmit('editFolderModal', editFolder);
                 setupDragAndDrop();
+
+                window.addEventListener('pagehide', flushPendingCloudSave);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') flushPendingCloudSave();
+                });
             }
 
             function runMergeSelfTests() {
@@ -2960,6 +2774,22 @@
                 const replaced = mergeUrlLists([], remote);
                 assert('replace-shaped remote only', replaced.length === 2 && !replaced.some((url) => url.id === 'only-local'));
                 assert('local-only would be dropped only by replace', replaceLocal.length === 1);
+                const skinny = migrateUrl({ id: 's', link: 'https://skinny.example', name: 'SkinnyCloud' });
+                assert('missing updatedAt is oldest', skinny.updatedAt === 0 && skinny.createdAt === 0);
+                const skinnyMerge = mergeUrlLists(
+                    [migrateUrl({ id: 's', link: 'https://skinny.example', name: 'LocalEdit', updatedAt: 40, folder: '工作', favorite: true })],
+                    [{ id: 's', link: 'https://skinny.example', name: 'SkinnyCloud' }]
+                );
+                assert('skinny gist does not overwrite', skinnyMerge[0].name === 'LocalEdit' && skinnyMerge[0].folder === '工作' && skinnyMerge[0].favorite === true);
+                const reorderMerge = mergeUrlLists(
+                    [migrateUrl({ id: 'r', link: 'https://r.example', name: 'NewName', updatedAt: 200, folder: '学习', favorite: true, order: 0, orderUpdatedAt: 10 })],
+                    [migrateUrl({ id: 'r', link: 'https://r.example', name: 'OldName', updatedAt: 50, folder: '工作', favorite: false, order: 7, orderUpdatedAt: 300 })]
+                );
+                assert('reorder does not stomp content', reorderMerge[0].name === 'NewName' && reorderMerge[0].folder === '学习' && reorderMerge[0].favorite === true);
+                assert('newer order wins independently', reorderMerge[0].order === 7);
+                const unchangedContent = migrateUrl({ id: 'c', link: 'https://c.example', name: 'Keep', updatedAt: 80, order: 3 });
+                const reordered = SiteAccount.applyReorder([unchangedContent], ['c'], 999);
+                assert('applyReorder skips content stamp', reordered.urls[0].name === 'Keep' && reordered.urls[0].updatedAt === 80 && reordered.urls[0].order === 0 && reordered.urls[0].orderUpdatedAt === 999);
                 return results;
             }
 
@@ -3006,6 +2836,7 @@
                     authMode: state.authMode,
                     hasVault: !!state.siteVault,
                     plaintextToken: localStorage.getItem(STORAGE_KEYS.token),
+                    hasSessionToken: !!(SiteAccount && SiteAccount.readSessionToken(sessionStorage)),
                     vaultContainsMemoryToken: !!(state.githubToken && vaultRaw.indexOf(state.githubToken) !== -1)
                 };
             }
@@ -3015,7 +2846,6 @@
                 loadAuthState();
                 els.gistIdInput.value = state.currentGistId;
                 els.githubUsernameInput.value = state.githubUsername;
-                els.githubClientIdInput.value = state.githubClientId;
                 updateEngineLabel();
                 updateExpandButton();
                 setupEventListeners();
@@ -3024,21 +2854,24 @@
                 renderUrls();
                 updateAuthUI();
 
-                window.__new2Test = {
-                    mergeUrlLists,
-                    mergeFolders,
-                    migrateUrl,
-                    applyCloudData,
-                    runMergeSelfTests,
-                    runSiteAccountSelfTests,
-                    inspectAuth,
-                    pickBookmarkGist: SiteAccount && SiteAccount.pickBookmarkGist,
-                    findBookmarkGist: SiteAccount && SiteAccount.findBookmarkGist,
-                    encryptToken: SiteAccount && SiteAccount.encryptToken,
-                    decryptToken: SiteAccount && SiteAccount.decryptToken
-                };
-
-                if (/[?&]selftest=1/.test(location.search)) {
+                if (SELF_TEST) {
+                    window.__new2Test = {
+                        mergeUrlLists,
+                        mergeFolders,
+                        migrateUrl,
+                        applyCloudData,
+                        applyReorder: SiteAccount && SiteAccount.applyReorder,
+                        parseTimestamp: SiteAccount && SiteAccount.parseTimestamp,
+                        runMergeSelfTests,
+                        runSiteAccountSelfTests,
+                        inspectAuth,
+                        persistSessionToken,
+                        restoreSessionToken,
+                        pickBookmarkGist: SiteAccount && SiteAccount.pickBookmarkGist,
+                        findBookmarkGist: SiteAccount && SiteAccount.findBookmarkGist,
+                        encryptToken: SiteAccount && SiteAccount.encryptToken,
+                        decryptToken: SiteAccount && SiteAccount.decryptToken
+                    };
                     const mergeResults = runMergeSelfTests();
                     const vaultResults = await runSiteAccountSelfTests();
                     const results = mergeResults.concat(vaultResults);
@@ -3050,7 +2883,9 @@
                     );
                 }
 
-                if (state.legacyPlaintextToken && !state.siteVault) {
+                if (state.githubToken) {
+                    await afterUnlocked({ silent: true });
+                } else if (state.legacyPlaintextToken && !state.siteVault) {
                     setStorageExpanded(true);
                     showStatus('检测到明文令牌，请注册本站账号并设置密码后再同步', 'info', { silentToast: true, expandStorage: true });
                 } else if (state.siteVault && !state.githubToken) {
