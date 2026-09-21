@@ -928,6 +928,10 @@
             border: 0;
         }
 
+        [hidden] {
+            display: none !important;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *,
             *::before,
@@ -1496,7 +1500,7 @@
             }
 
             function readClientId() {
-                return (els.githubClientIdInput.value || state.githubClientId || '').trim();
+                return (els.githubClientIdInput && els.githubClientIdInput.value ? els.githubClientIdInput.value : '').trim();
             }
 
             function updateDeviceLoginButton() {
@@ -2488,6 +2492,10 @@
                 document.getElementById('replaceFromGithubBtn').addEventListener('click', replaceFromGitHub);
                 document.getElementById('saveStorageMethodBtn').addEventListener('click', saveStorageMethod);
                 els.githubLoginForm.addEventListener('submit', loginWithToken);
+                els.githubTokenInput.addEventListener('invalid', (event) => {
+                    event.preventDefault();
+                    showStatus('请填写个人访问令牌（不是 GitHub 登录密码）', 'error', { expandStorage: true });
+                });
                 document.getElementById('logoutBtn').addEventListener('click', logout);
                 document.getElementById('deviceLoginBtn').addEventListener('click', startDeviceFlow);
                 document.getElementById('cancelDeviceBtn').addEventListener('click', () => {
