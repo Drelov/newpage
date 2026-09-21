@@ -1019,6 +1019,136 @@
             display: none !important;
         }
 
+        header {
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(74, 111, 165, 0.1);
+            color: #4a6fa5;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .theme-toggle:hover,
+        .theme-toggle:focus-visible {
+            background: rgba(74, 111, 165, 0.2);
+            outline: none;
+        }
+
+        html.theme-dark {
+            color-scheme: dark;
+        }
+
+        html.theme-dark body {
+            background: linear-gradient(135deg, #1b2230, #121722);
+            color: #e6ebf5;
+        }
+
+        html.theme-dark .container {
+            background: rgba(24, 30, 42, 0.96);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+        }
+
+        html.theme-dark header,
+        html.theme-dark .folders-container,
+        html.theme-dark .expand-toggle {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        html.theme-dark h1,
+        html.theme-dark .search-title,
+        html.theme-dark .section-title,
+        html.theme-dark .storage-title,
+        html.theme-dark .storage-card h3,
+        html.theme-dark .modal h2 {
+            color: #9bb6e3;
+        }
+
+        html.theme-dark .subtitle,
+        html.theme-dark .search-hint,
+        html.theme-dark .drag-hint,
+        html.theme-dark .logged-in-hint,
+        html.theme-dark .auth-note,
+        html.theme-dark .device-hint,
+        html.theme-dark .result-count,
+        html.theme-dark .empty-state,
+        html.theme-dark .storage-card p {
+            color: #9aa7bd;
+        }
+
+        html.theme-dark .search-section,
+        html.theme-dark .url-section,
+        html.theme-dark .storage-card,
+        html.theme-dark .storage-card.github-card {
+            background: linear-gradient(135deg, #232b3b, #1c2330);
+            border-color: rgba(155, 182, 227, 0.16);
+        }
+
+        html.theme-dark .search-container,
+        html.theme-dark .url-button,
+        html.theme-dark .modal-content,
+        html.theme-dark .context-menu,
+        html.theme-dark .storage-input,
+        html.theme-dark .modal input,
+        html.theme-dark .modal select {
+            background: #2a3345;
+            color: #dbe6f6;
+            border-color: #3c4860;
+        }
+
+        html.theme-dark .search-input,
+        html.theme-dark .engine-switch-btn,
+        html.theme-dark .search-icon,
+        html.theme-dark .theme-toggle {
+            color: #9bb6e3;
+            background: transparent;
+        }
+
+        html.theme-dark .theme-toggle {
+            background: rgba(155, 182, 227, 0.12);
+        }
+
+        html.theme-dark .folder-tab {
+            background: rgba(155, 182, 227, 0.12);
+            color: #c5d5ef;
+        }
+
+        html.theme-dark .folder-tab.active {
+            background: #4a6fa5;
+            color: white;
+        }
+
+        html.theme-dark .url-button .url-name,
+        html.theme-dark .url-folder-label {
+            color: #c5d5ef;
+        }
+
+        html.theme-dark .context-menu button {
+            color: #c5d5ef;
+        }
+
+        html.theme-dark .context-menu button:hover,
+        html.theme-dark .context-menu button:focus-visible {
+            background: #343e52;
+        }
+
+        html.theme-dark .logged-in-panel {
+            background: rgba(87, 167, 115, 0.12);
+        }
+
+        html.theme-dark .toast {
+            background: #3a4660;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *,
             *::before,
@@ -1032,6 +1162,9 @@
 <body>
     <div class="container">
         <header>
+            <button class="theme-toggle" id="themeToggleBtn" type="button" title="切换深色模式" aria-label="切换深色模式">
+                <i class="fas fa-moon" id="themeToggleIcon"></i>
+            </button>
             <h1><i class="fab fa-github"></i> 简约网址管理器</h1>
             <p class="subtitle">本地优先保存，可选同步到 GitHub Gist</p>
         </header>
@@ -1058,7 +1191,7 @@
                 </button>
             </div>
 
-            <p class="drag-hint">拖动蓝色卡片可调整当前分组中的顺序，也可拖到上方文件夹 / 星标 / 未分类。键盘用户仍可用右键编辑或移动。</p>
+            <p class="drag-hint">拖动卡片可调整顺序，也可拖到上方文件夹 / 星标 / 未分类。键盘：选中卡片后按 Alt + 方向键排序。</p>
 
             <div class="folders-container" id="foldersContainer"></div>
 
@@ -1297,7 +1430,8 @@
                 folders: 'folders',
                 engine: 'searchEngine',
                 expanded: 'urlsExpanded',
-                folder: 'currentFolder'
+                folder: 'currentFolder',
+                theme: 'bookmarkTheme'
             };
             const SELF_TEST = /(?:^|[?&])selftest=1(?:&|$)/.test(location.search);
 
@@ -1324,7 +1458,8 @@
                 authMode: 'login',
                 siteVault: null,
                 legacyPlaintextToken: '',
-                pendingToken: ''
+                pendingToken: '',
+                theme: localStorage.getItem(STORAGE_KEYS.theme) || ''
             };
 
             let cloudSaveTimer = null;
@@ -1375,7 +1510,9 @@
                 accountNewPassword: document.getElementById('accountNewPassword'),
                 accountNewPasswordConfirm: document.getElementById('accountNewPasswordConfirm'),
                 accountNewToken: document.getElementById('accountNewToken'),
-                updateAccountBtn: document.getElementById('updateAccountBtn')
+                updateAccountBtn: document.getElementById('updateAccountBtn'),
+                themeToggleBtn: document.getElementById('themeToggleBtn'),
+                themeToggleIcon: document.getElementById('themeToggleIcon')
             };
 
             function uid() {
@@ -1511,6 +1648,8 @@
                 };
                 if (!state.githubToken) broadcastAuthMessage({ type: 'request' });
             }
+
+            function persistAuthMeta() {
                 if (state.githubUsername) localStorage.setItem(STORAGE_KEYS.username, state.githubUsername);
                 else localStorage.removeItem(STORAGE_KEYS.username);
                 if (state.githubClientId) localStorage.setItem(STORAGE_KEYS.clientId, state.githubClientId);
@@ -1552,6 +1691,7 @@
                 localStorage.setItem(STORAGE_KEYS.folder, state.currentFolder);
                 localStorage.setItem(STORAGE_KEYS.expanded, state.isExpanded ? '1' : '0');
                 localStorage.setItem(STORAGE_KEYS.engine, state.searchEngine);
+                localStorage.setItem(STORAGE_KEYS.theme, state.theme);
                 persistAuthMeta();
             }
 
@@ -1735,6 +1875,40 @@
                 }
                 updateDeviceLoginButton();
                 updateStorageStatus();
+            }
+
+            function preferredTheme() {
+                if (state.theme === 'dark' || state.theme === 'light') return state.theme;
+                return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            function applyTheme() {
+                const theme = preferredTheme();
+                document.documentElement.classList.toggle('theme-dark', theme === 'dark');
+                if (els.themeToggleIcon) {
+                    els.themeToggleIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                }
+                if (els.themeToggleBtn) {
+                    els.themeToggleBtn.title = theme === 'dark' ? '切换浅色模式' : '切换深色模式';
+                    els.themeToggleBtn.setAttribute('aria-label', els.themeToggleBtn.title);
+                }
+            }
+
+            function toggleTheme() {
+                state.theme = preferredTheme() === 'dark' ? 'light' : 'dark';
+                persistLocal();
+                applyTheme();
+            }
+
+            function moveFocusedCard(delta) {
+                const card = document.activeElement;
+                if (!card || !card.classList.contains('url-button')) return;
+                const sibling = delta < 0 ? card.previousElementSibling : card.nextElementSibling;
+                if (!sibling || !sibling.classList.contains('url-button')) return;
+                if (delta < 0) sibling.before(card);
+                else sibling.after(card);
+                card.focus();
+                persistReorderFromDom();
             }
 
             function updateEngineLabel() {
@@ -2041,6 +2215,8 @@
                 const label = tabName === '星标' ? '星标' : (tabName === '未分类' ? '未分类' : tabName);
                 showToast(tabName === '星标' ? '已加星标' : ('已移动到 ' + label), 'success');
             }
+
+            function persistReorderFromDom() {
                 const ids = [...els.urlButtonsContainer.querySelectorAll('.url-button')].map((el) => el.dataset.id);
                 if (!ids.length) return;
                 const currentVisible = getVisibleUrls().map((url) => url.id);
@@ -2860,6 +3036,14 @@
                         event.preventDefault();
                         els.searchInput.focus();
                     }
+                    if (event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowUp')) {
+                        event.preventDefault();
+                        moveFocusedCard(-1);
+                    }
+                    if (event.altKey && (event.key === 'ArrowRight' || event.key === 'ArrowDown')) {
+                        event.preventDefault();
+                        moveFocusedCard(1);
+                    }
                 });
                 document.querySelectorAll('.modal').forEach((modal) => {
                     modal.addEventListener('click', (event) => {
@@ -3027,6 +3211,8 @@
                 updateEngineLabel();
                 updateExpandButton();
                 setupEventListeners();
+                applyTheme();
+                if (els.themeToggleBtn) els.themeToggleBtn.addEventListener('click', toggleTheme);
                 setAuthMode(state.authMode);
                 renderFolders();
                 renderUrls();
