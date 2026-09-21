@@ -1918,6 +1918,7 @@
                 if (!els.undoBanner) return;
                 els.undoBanner.hidden = true;
                 els.undoBanner.classList.remove('show');
+                delete els.undoBanner.dataset.undo;
             }
 
             function clearPendingUndo() {
@@ -1934,6 +1935,7 @@
                 }
                 clearPendingUndo();
                 pendingUndo = snapshot;
+                if (els.undoBanner) els.undoBanner.dataset.undo = JSON.stringify(snapshot);
                 showUndoBanner(message);
                 undoTimer = setTimeout(() => {
                     if (pendingUndo === snapshot) clearPendingUndo();
@@ -1946,14 +1948,27 @@
             }
 
             function undoLastChange() {
-                if (!pendingUndo) return false;
-                const snapshot = pendingUndo;
+                const snapshot = pendingUndo || readBannerSnapshot();
+                if (!snapshot) return false;
                 clearPendingUndo();
-                if (snapshot.type === 'url') restoreDeletedUrl(snapshot);
-                else if (snapshot.type === 'folder') restoreDeletedFolder(snapshot);
-                else return false;
+                let restored = false;
+                if (snapshot.type === 'url') restored = restoreDeletedUrl(snapshot);
+                else if (snapshot.type === 'folder') restored = restoreDeletedFolder(snapshot);
+                if (!restored) {
+                    showToast('没有可撤销的内容', 'error');
+                    return false;
+                }
                 showToast('已撤销', 'success');
                 return true;
+            }
+
+            function readBannerSnapshot() {
+                if (!els.undoBanner || !els.undoBanner.dataset.undo) return null;
+                try {
+                    return JSON.parse(els.undoBanner.dataset.undo);
+                } catch (error) {
+                    return null;
+                }
             }
 
             function showStatus(message, type, options) {
@@ -2771,26 +2786,33 @@
             }
 
             function restoreDeletedUrl(snapshot) {
-                if (!SiteAccount || !snapshot) return;
-                state.urls = SiteAccount.restoreUrlDelete(state.urls, snapshot);
-                state.selectedUrlId = snapshot.url && snapshot.url.id ? snapshot.url.id : state.selectedUrlId;
+                if (!snapshot || !snapshot.url) return false;
+                const restored = migrateUrl(snapshot.url, snapshot.index);
+                const next = state.urls.filter((url) => String(url.id) !== String(restored.id));
+                const index = Math.min(Math.max(0, Number(snapshot.index) || 0), next.length);
+                next.splice(index, 0, restored);
+                state.urls = next;
+                state.selectedUrlId = restored.id;
                 commitChange();
+                return state.urls.some((url) => String(url.id) === String(restored.id));
             }
 
             function restoreDeletedFolder(snapshot) {
-                if (!SiteAccount || !snapshot) return;
+                if (!SiteAccount || !snapshot) return false;
                 const restored = SiteAccount.restoreFolderDelete(state.folders, state.urls, snapshot, state.currentFolder);
                 state.folders = restored.folders;
                 state.urls = restored.urls;
                 state.currentFolder = restored.currentFolder || '全部';
                 commitChange();
+                return true;
             }
 
             function deleteSelectedUrl() {
                 const current = selectedUrl();
                 if (!current || !SiteAccount) return;
-                const snapshot = SiteAccount.snapshotUrlDelete(state.urls, current.id);
-                state.urls = state.urls.filter((url) => url.id !== current.id);
+                const snapshot = JSON.parse(JSON.stringify(SiteAccount.snapshotUrlDelete(state.urls, current.id)));
+                const keepId = current.id;
+                state.urls = state.urls.filter((url) => String(url.id) !== String(keepId));
                 state.selectedUrlId = null;
                 hideMenus();
                 commitChange();
