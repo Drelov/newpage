@@ -15,6 +15,7 @@
     const GIST_LIST_MAX_PAGES = 10;
     const RESERVED_FOLDERS = ['全部', '星标', '未分类'];
     const KEEPALIVE_MAX_BYTES = 60000;
+    const AUTH_CHANNEL_NAME = 'newpage-bookmark-auth';
 
     function getCrypto() {
         const cryptoObj = globalThis.crypto;
@@ -436,6 +437,27 @@
         return { urls: next, changed };
     }
 
+    function dropTargetPatch(tabName) {
+        if (!tabName || tabName === '全部') return null;
+        if (tabName === '星标') return { favorite: true };
+        if (tabName === '未分类') return { folder: '' };
+        return { folder: tabName };
+    }
+
+    function applyDropTargetPatch(url, tabName) {
+        const patch = dropTargetPatch(tabName);
+        if (!url || !patch) return { changed: false, url };
+        let changed = false;
+        const next = url;
+        Object.keys(patch).forEach((key) => {
+            if (next[key] !== patch[key]) {
+                next[key] = patch[key];
+                changed = true;
+            }
+        });
+        return { changed, url: next };
+    }
+
     function shouldUseKeepalive(body, force) {
         if (!force) return false;
         const size = typeof body === 'string' ? body.length : 0;
@@ -453,6 +475,7 @@
         GIST_LIST_MAX_PAGES,
         RESERVED_FOLDERS,
         KEEPALIVE_MAX_BYTES,
+        AUTH_CHANNEL_NAME,
         toBase64,
         fromBase64,
         encryptToken,
@@ -478,6 +501,8 @@
         mergeUrlLists,
         mergeFolders,
         applyReorder,
+        dropTargetPatch,
+        applyDropTargetPatch,
         shouldUseKeepalive
     };
 });

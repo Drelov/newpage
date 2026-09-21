@@ -233,6 +233,19 @@ async function run() {
     const folders = api.mergeFolders(['工作'], ['学习', '工作', '全部']);
     assert.deepStrictEqual(folders, ['工作', '学习']);
 
+    assert.deepStrictEqual(api.dropTargetPatch('全部'), null);
+    assert.deepStrictEqual(api.dropTargetPatch('星标'), { favorite: true });
+    assert.deepStrictEqual(api.dropTargetPatch('未分类'), { folder: '' });
+    assert.deepStrictEqual(api.dropTargetPatch('工作'), { folder: '工作' });
+    const starred = { favorite: false, folder: '学习' };
+    assert.strictEqual(api.applyDropTargetPatch(starred, '星标').changed, true);
+    assert.strictEqual(starred.favorite, true);
+    assert.strictEqual(starred.folder, '学习');
+    const moved = { favorite: true, folder: '学习' };
+    assert.strictEqual(api.applyDropTargetPatch(moved, '工作').changed, true);
+    assert.strictEqual(moved.folder, '工作');
+    assert.strictEqual(api.applyDropTargetPatch(moved, '全部').changed, false);
+
     const localStore = memoryStorage({ githubToken: secret });
     const sessionStore = memoryStorage();
     api.writeSessionToken(secret, sessionStore);
@@ -270,6 +283,10 @@ async function run() {
     assert.ok(new2.indexOf('updateSiteAccount') !== -1);
     assert.ok(new2.indexOf('修改密码或更换令牌') !== -1);
     assert.ok(new2.indexOf('canonicalLink') !== -1);
+    assert.ok(new2.indexOf('BroadcastChannel') !== -1);
+    assert.ok(new2.indexOf('applyCardDropOnFolder') !== -1);
+    assert.ok(new2.indexOf('icons.duckduckgo.com') !== -1);
+    assert.ok(new2.indexOf('google.com/s2/favicons') === -1);
 
     console.log('bookmark-site-account tests passed');
 }

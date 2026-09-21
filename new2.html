@@ -355,8 +355,10 @@
             text-align: center;
         }
 
-        .folder-tab:not(.active) .folder-count {
-            background: rgba(74, 111, 165, 0.12);
+        .folder-tab.drop-target {
+            outline: 2px dashed #4a6fa5;
+            outline-offset: 2px;
+            background: rgba(74, 111, 165, 0.22);
         }
 
         .expand-toggle {
@@ -1056,7 +1058,7 @@
                 </button>
             </div>
 
-            <p class="drag-hint">拖动蓝色卡片可调整当前分组中的顺序；键盘用户仍可用右键编辑或移动。</p>
+            <p class="drag-hint">拖动蓝色卡片可调整当前分组中的顺序，也可拖到上方文件夹 / 星标 / 未分类。键盘用户仍可用右键编辑或移动。</p>
 
             <div class="folders-container" id="foldersContainer"></div>
 
@@ -1329,6 +1331,8 @@
             let cloudSavePending = false;
             let toastTimer = null;
             let pressTimer = null;
+            let authChannel = null;
+            let skipFolderClick = false;
 
             const els = {
                 urlButtonsContainer: document.getElementById('urlButtonsContainer'),
@@ -1416,7 +1420,7 @@
             function faviconSrc(link) {
                 const host = hostnameOf(link);
                 if (!host) return '';
-                return 'https://www.google.com/s2/favicons?sz=64&domain=' + encodeURIComponent(host);
+                return 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(host) + '.ico';
             }
 
             function migrateUrl(raw, index) {
@@ -1452,10 +1456,13 @@
                 });
             }
 
-            function persistSessionToken() {
+            function persistSessionToken(options) {
+                const opts = options || {};
                 if (!SiteAccount) return;
                 if (state.githubToken) SiteAccount.writeSessionToken(state.githubToken, sessionStorage);
                 else SiteAccount.clearSessionToken(sessionStorage);
+                if (opts.broadcast === false) return;
+                if (state.githubToken) broadcastAuthMessage({ type: 'token', token: state.githubToken });
             }
 
             function restoreSessionToken() {
@@ -1464,7 +1471,46 @@
                 if (token) state.githubToken = token;
             }
 
-            function persistAuthMeta() {
+            function broadcastAuthMessage(message) {
+                if (!authChannel) return;
+                try {
+                    authChannel.postMessage(message);
+                } catch (error) {
+                    // Other tabs are best-effort.
+                }
+            }
+
+            function setupAuthSync() {
+                if (typeof BroadcastChannel === 'undefined') return;
+                const name = (SiteAccount && SiteAccount.AUTH_CHANNEL_NAME) || 'newpage-bookmark-auth';
+                try {
+                    authChannel = new BroadcastChannel(name);
+                } catch (error) {
+                    authChannel = null;
+                    return;
+                }
+                authChannel.onmessage = (event) => {
+                    const data = event.data || {};
+                    if (data.type === 'request' && state.githubToken) {
+                        broadcastAuthMessage({ type: 'token', token: state.githubToken });
+                        return;
+                    }
+                    if (data.type === 'logout' && state.githubToken) {
+                        state.githubToken = '';
+                        persistSessionToken({ broadcast: false });
+                        updateAuthUI();
+                        showStatus('已在其他标签页退出登录', 'info', { silentToast: true });
+                        return;
+                    }
+                    if (data.type === 'token' && data.token && !state.githubToken) {
+                        state.githubToken = data.token;
+                        persistSessionToken({ broadcast: false });
+                        updateAuthUI();
+                        afterUnlocked({ silent: true });
+                    }
+                };
+                if (!state.githubToken) broadcastAuthMessage({ type: 'request' });
+            }
                 if (state.githubUsername) localStorage.setItem(STORAGE_KEYS.username, state.githubUsername);
                 else localStorage.removeItem(STORAGE_KEYS.username);
                 if (state.githubClientId) localStorage.setItem(STORAGE_KEYS.clientId, state.githubClientId);
@@ -1824,11 +1870,30 @@
                         '<i class="fas ' + iconName + '"></i>' +
                         '<span>' + escapeHtml(tab.name) + '</span>' +
                         '<span class="folder-count">' + count + '</span>';
+                    btn.dataset.dropTab = tab.name;
                     btn.addEventListener('click', () => {
+                        if (skipFolderClick) {
+                            skipFolderClick = false;
+                            return;
+                        }
                         state.currentFolder = tab.name;
                         persistLocal();
                         renderFolders();
                         renderUrls();
+                    });
+                    btn.addEventListener('dragover', (event) => {
+                        if (!state.draggingId || tab.name === '全部') return;
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                        btn.classList.add('drop-target');
+                    });
+                    btn.addEventListener('dragleave', () => btn.classList.remove('drop-target'));
+                    btn.addEventListener('drop', (event) => {
+                        event.preventDefault();
+                        btn.classList.remove('drop-target');
+                        skipFolderClick = true;
+                        const id = state.draggingId || event.dataTransfer.getData('text/plain');
+                        applyCardDropOnFolder(id, tab.name);
                     });
                     els.foldersContainer.appendChild(btn);
                 });
@@ -1965,7 +2030,17 @@
                 updateExpandButton();
             }
 
-            function persistReorderFromDom() {
+            function applyCardDropOnFolder(id, tabName) {
+                const current = state.urls.find((url) => url.id === id);
+                if (!current || !SiteAccount) return;
+                const result = SiteAccount.applyDropTargetPatch(current, tabName);
+                if (!result.changed) return;
+                touchUrl(current);
+                state.didDrag = true;
+                commitChange();
+                const label = tabName === '星标' ? '星标' : (tabName === '未分类' ? '未分类' : tabName);
+                showToast(tabName === '星标' ? '已加星标' : ('已移动到 ' + label), 'success');
+            }
                 const ids = [...els.urlButtonsContainer.querySelectorAll('.url-button')].map((el) => el.dataset.id);
                 if (!ids.length) return;
                 const currentVisible = getVisibleUrls().map((url) => url.id);
@@ -2533,7 +2608,8 @@
             function logout() {
                 if (!confirm('确定退出登录吗？将从内存清除访问令牌。加密保险柜仍留在本机，下次用本站用户名和密码即可解锁。收藏数据不会删除。')) return;
                 state.githubToken = '';
-                persistSessionToken();
+                persistSessionToken({ broadcast: false });
+                broadcastAuthMessage({ type: 'logout' });
                 state.githubLogin = '';
                 state.pendingToken = '';
                 clearPasswordFields();
@@ -2955,6 +3031,7 @@
                 renderFolders();
                 renderUrls();
                 updateAuthUI();
+                setupAuthSync();
 
                 if (SELF_TEST) {
                     window.__new2Test = {
