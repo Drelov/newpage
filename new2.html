@@ -513,7 +513,8 @@
             margin: 2px 0 6px;
         }
 
-        .auth-warning {
+        .auth-warning,
+        .storage-card .auth-warning {
             background: rgba(231, 76, 60, 0.08);
             color: #a33b30;
             border: 1px solid rgba(231, 76, 60, 0.22);
@@ -551,6 +552,71 @@
             color: #7d8da7;
             font-size: 0.85rem;
             margin: 0;
+        }
+
+        .auth-mode-switch {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .auth-mode-btn {
+            flex: 1;
+            border: 1px solid #d5deed;
+            background: white;
+            color: #4a6fa5;
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .auth-mode-btn.active {
+            background: linear-gradient(135deg, #4a6fa5, #6c8bc7);
+            color: white;
+            border-color: transparent;
+        }
+
+        .auth-note {
+            color: #7d8da7;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            margin: 0 0 14px;
+            text-align: left;
+        }
+
+        .advanced-options {
+            text-align: left;
+            margin: 4px 0 16px;
+            background: #fff;
+            border: 1px solid #e1e8f0;
+            border-radius: 10px;
+            padding: 4px 12px 8px;
+        }
+
+        .advanced-options summary {
+            cursor: pointer;
+            color: #4a6fa5;
+            font-weight: 600;
+            padding: 10px 0;
+            list-style: none;
+        }
+
+        .advanced-options summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .advanced-options summary::after {
+            content: '▾';
+            float: right;
+            color: #a6b7d4;
+        }
+
+        .token-optional-hint {
+            color: #7d8da7;
+            font-size: 0.8rem;
+            margin: -6px 0 12px;
         }
 
         .device-flow-panel {
@@ -1008,42 +1074,62 @@
             <div class="storage-content" id="storageContent">
                 <div class="storage-options">
                     <div class="storage-card github-card">
-                        <h3><i class="storage-icon fab fa-github"></i> GitHub 账号登录</h3>
-                        <p>登录后可同步到 GitHub Gist。凭证只保存在当前浏览器，本页不会把密码发到 GitHub 登录接口。</p>
+                        <h3><i class="storage-icon fas fa-user-lock"></i> 本站账号登录</h3>
+                        <p>用本站用户名和密码解锁当前浏览器里加密保存的访问令牌，再同步 GitHub Gist。本页是静态页面、没有云端账号服务器；换设备需要重新注册并粘贴一次令牌。</p>
 
                         <form id="githubLoginForm" class="login-form" autocomplete="off">
+                            <div id="authModeSwitch" class="auth-mode-switch">
+                                <button type="button" class="auth-mode-btn active" id="showLoginModeBtn" aria-pressed="true">登录</button>
+                                <button type="button" class="auth-mode-btn" id="showRegisterModeBtn" aria-pressed="false">注册</button>
+                            </div>
+
+                            <div id="migrateBanner" class="auth-warning" hidden>
+                                本机还存着明文访问令牌。请设置本站密码，加密后再继续使用。可直接点注册（令牌已预填），不必再复制一次。
+                            </div>
+
                             <div id="loginCredentials">
-                                <label class="field-label" for="githubUsername">GitHub 用户名（可选）</label>
-                                <input type="text" class="storage-input" id="githubUsername" name="github-username" placeholder="用于显示「已登录为 xxx」" autocomplete="username" spellcheck="false">
+                                <label class="field-label" for="githubUsername">本站用户名</label>
+                                <input type="text" class="storage-input" id="githubUsername" name="site-username" placeholder="给这个浏览器里的账号起个名字" autocomplete="username" spellcheck="false">
 
-                                <label class="field-label" for="githubToken">个人访问令牌</label>
-                                <input type="password" class="storage-input" id="githubToken" name="github-pat" placeholder="ghp_ 或 github_pat_ 开头的 token" autocomplete="off" spellcheck="false">
+                                <label class="field-label" for="sitePassword">本站密码</label>
+                                <input type="password" class="storage-input" id="sitePassword" name="site-password" placeholder="用于加密/解锁令牌，不是 GitHub 登录密码" autocomplete="current-password" spellcheck="false">
 
-                                <p class="auth-warning" role="note">GitHub 已禁用用账号密码调用 API；请用仅有 gist 权限的 token，不要填网站登录密码。</p>
+                                <div id="registerExtras">
+                                    <label class="field-label" for="sitePasswordConfirm">确认密码</label>
+                                    <input type="password" class="storage-input" id="sitePasswordConfirm" name="site-password-confirm" placeholder="再输入一次本站密码" autocomplete="new-password" spellcheck="false">
+
+                                    <label class="field-label" for="githubToken">个人访问令牌</label>
+                                    <input type="password" class="storage-input" id="githubToken" name="github-pat" placeholder="ghp_ 或 github_pat_ 开头，只在注册/绑定时粘贴一次" autocomplete="off" spellcheck="false">
+                                    <p class="token-optional-hint" id="tokenOptionalHint" hidden>检测到本机已有令牌，此项可留空。</p>
+
+                                    <p class="auth-warning" role="note">请记住本站密码：忘记后无法解密，只能重新粘贴个人访问令牌再注册。不要填写 GitHub 网站登录密码；GitHub 也禁止用网站密码调用 API。本站密码和令牌都不会作为 GitHub 登录密码发送。</p>
+                                </div>
                             </div>
 
                             <div class="btn-group" id="loginButtonRow">
                                 <button class="action-btn github-btn" id="loginBtn" type="submit">
                                     <i class="fas fa-sign-in-alt"></i> 登录
                                 </button>
-                                <button class="action-btn ghost-btn" id="deviceLoginBtn" type="button" disabled>
-                                    <i class="fab fa-github"></i> 用 GitHub 登录
-                                </button>
                             </div>
                         </form>
 
                         <div id="loggedInPanel" class="logged-in-panel" hidden>
                             <p class="logged-in-name" id="loggedInName">已登录</p>
-                            <p class="logged-in-hint">个人访问令牌已保存在本机，输入框已隐藏。</p>
+                            <p class="logged-in-hint" id="loggedInHint">访问令牌只在内存中，本机只保留加密保险柜。</p>
                         </div>
 
-                        <div class="login-form">
-                            <label class="field-label" for="gistId">Gist ID</label>
-                            <input type="text" class="storage-input" id="gistId" placeholder="Gist ID（可留空，首次保存时自动创建）" autocomplete="off" spellcheck="false">
+                        <details class="advanced-options" id="advancedOptions">
+                            <summary>高级选项</summary>
+                            <p class="auth-note">大多数情况不用填 Gist ID：有令牌就会自动查找「网址管理器数据」，没有则在首次保存时创建。</p>
+                            <label class="field-label" for="gistId">Gist ID（可选）</label>
+                            <input type="text" class="storage-input" id="gistId" placeholder="留空即可，登录后自动查找或首次保存时创建" autocomplete="off" spellcheck="false">
 
                             <label class="field-label" for="githubClientId">OAuth App Client ID（可选）</label>
                             <input type="text" class="storage-input" id="githubClientId" placeholder="用于「用 GitHub 登录」设备授权" autocomplete="off" spellcheck="false">
                             <p class="device-hint" id="deviceFlowHint">未填写时设备登录不可用。请自行注册带 gist 权限的 GitHub OAuth App 并填入 Client ID；本页不需要、也不会保存 client_secret。</p>
+                            <button class="action-btn ghost-btn" id="deviceLoginBtn" type="button" disabled>
+                                <i class="fab fa-github"></i> 用 GitHub 登录
+                            </button>
 
                             <div id="deviceFlowPanel" class="device-flow-panel" hidden>
                                 <p>请在 GitHub 打开验证页并输入代码：</p>
@@ -1051,10 +1137,10 @@
                                 <p><a id="deviceVerifyLink" href="https://github.com/login/device" target="_blank" rel="noopener noreferrer">https://github.com/login/device</a></p>
                                 <button type="button" class="action-btn ghost-btn" id="cancelDeviceBtn">取消设备登录</button>
                             </div>
-                        </div>
+                        </details>
 
                         <div id="githubStatus" class="status-message info">
-                            提示：请用 gist 权限的个人访问令牌登录。未配置时仍可本机使用。
+                            提示：注册时粘贴一次 gist 权限的个人访问令牌，之后只需本站用户名和密码。未配置时仍可本机使用。
                         </div>
 
                         <div class="storage-status" id="storageStatus">
@@ -1171,13 +1257,16 @@
 
     <div id="folderMenu" class="context-menu" role="menu"></div>
 
+    <script src="assets/js/bookmark-site-account.js"></script>
     <script>
         (() => {
+            const SiteAccount = window.BookmarkSiteAccount;
             const STORAGE_KEYS = {
                 token: 'githubToken',
                 gistId: 'gistId',
                 username: 'githubUsername',
                 clientId: 'githubClientId',
+                vault: 'bookmarkSiteVault',
                 urls: 'bookmarkUrls',
                 folders: 'folders',
                 engine: 'searchEngine',
@@ -1193,8 +1282,9 @@
                 folders: [...DEFAULT_FOLDERS],
                 selectedUrlId: null,
                 currentGistId: localStorage.getItem(STORAGE_KEYS.gistId) || '',
-                githubToken: localStorage.getItem(STORAGE_KEYS.token) || '',
+                githubToken: '',
                 githubUsername: localStorage.getItem(STORAGE_KEYS.username) || '',
+                githubLogin: '',
                 githubClientId: localStorage.getItem(STORAGE_KEYS.clientId) || '',
                 searchEngine: localStorage.getItem(STORAGE_KEYS.engine) || 'bing',
                 isExpanded: localStorage.getItem(STORAGE_KEYS.expanded) !== '0',
@@ -1203,7 +1293,11 @@
                 bookmarkQuery: '',
                 suppressNextClick: false,
                 draggingId: null,
-                didDrag: false
+                didDrag: false,
+                authMode: 'login',
+                siteVault: null,
+                legacyPlaintextToken: '',
+                pendingToken: ''
             };
 
             let cloudSaveTimer = null;
@@ -1220,7 +1314,10 @@
                 loginButtonRow: document.getElementById('loginButtonRow'),
                 loggedInPanel: document.getElementById('loggedInPanel'),
                 loggedInName: document.getElementById('loggedInName'),
+                loggedInHint: document.getElementById('loggedInHint'),
                 githubUsernameInput: document.getElementById('githubUsername'),
+                sitePasswordInput: document.getElementById('sitePassword'),
+                sitePasswordConfirmInput: document.getElementById('sitePasswordConfirm'),
                 githubTokenInput: document.getElementById('githubToken'),
                 gistIdInput: document.getElementById('gistId'),
                 githubClientIdInput: document.getElementById('githubClientId'),
@@ -1230,6 +1327,13 @@
                 deviceUserCode: document.getElementById('deviceUserCode'),
                 deviceVerifyLink: document.getElementById('deviceVerifyLink'),
                 logoutBtn: document.getElementById('logoutBtn'),
+                authModeSwitch: document.getElementById('authModeSwitch'),
+                showLoginModeBtn: document.getElementById('showLoginModeBtn'),
+                showRegisterModeBtn: document.getElementById('showRegisterModeBtn'),
+                registerExtras: document.getElementById('registerExtras'),
+                migrateBanner: document.getElementById('migrateBanner'),
+                tokenOptionalHint: document.getElementById('tokenOptionalHint'),
+                loginBtn: document.getElementById('loginBtn'),
                 githubStatus: document.getElementById('githubStatus'),
                 loader: document.getElementById('loader'),
                 engineLabel: document.getElementById('engineLabel'),
@@ -1383,6 +1487,33 @@
                 if (state.githubClientId) localStorage.setItem(STORAGE_KEYS.clientId, state.githubClientId);
                 else localStorage.removeItem(STORAGE_KEYS.clientId);
                 if (state.currentGistId) localStorage.setItem(STORAGE_KEYS.gistId, state.currentGistId);
+                else localStorage.removeItem(STORAGE_KEYS.gistId);
+                if (state.siteVault) {
+                    state.siteVault.username = state.githubUsername || state.siteVault.username || '';
+                    state.siteVault.gistId = state.currentGistId || state.siteVault.gistId || '';
+                    if (SiteAccount) SiteAccount.writeVault(state.siteVault, localStorage);
+                    localStorage.removeItem(STORAGE_KEYS.token);
+                }
+            }
+
+            function loadAuthState() {
+                const vault = SiteAccount ? SiteAccount.readVault(localStorage) : null;
+                state.siteVault = vault;
+                state.pendingToken = '';
+                if (vault) {
+                    state.githubUsername = vault.username || state.githubUsername || '';
+                    if (vault.gistId) state.currentGistId = vault.gistId;
+                    localStorage.removeItem(STORAGE_KEYS.token);
+                    state.legacyPlaintextToken = '';
+                    state.githubToken = '';
+                    state.authMode = 'login';
+                    return;
+                }
+                state.legacyPlaintextToken = SiteAccount
+                    ? SiteAccount.readLegacyPlaintextToken(localStorage)
+                    : (localStorage.getItem(STORAGE_KEYS.token) || '');
+                state.githubToken = '';
+                state.authMode = 'register';
             }
 
             function persistLocal() {
@@ -1492,7 +1623,10 @@
                     const who = state.githubUsername ? '已登录为 ' + state.githubUsername : '已登录';
                     text.textContent = state.currentGistId
                         ? who + '（已连接 Gist ' + state.currentGistId.slice(0, 8) + '…）'
-                        : who + '，首次云端保存时会创建 Gist';
+                        : who + '，将自动查找或在首次保存时创建 Gist';
+                } else if (state.siteVault) {
+                    indicator.className = 'status-indicator status-inactive';
+                    text.textContent = '本机已有账号保险柜，请输入用户名和密码解锁';
                 } else {
                     indicator.className = 'status-indicator status-inactive';
                     text.textContent = '尚未连接到 GitHub，当前使用本机存储';
@@ -1516,26 +1650,71 @@
                 }
             }
 
+            function setAuthMode(mode) {
+                state.authMode = mode === 'login' ? 'login' : 'register';
+                if (els.showLoginModeBtn) {
+                    els.showLoginModeBtn.classList.toggle('active', state.authMode === 'login');
+                    els.showLoginModeBtn.setAttribute('aria-pressed', String(state.authMode === 'login'));
+                }
+                if (els.showRegisterModeBtn) {
+                    els.showRegisterModeBtn.classList.toggle('active', state.authMode === 'register');
+                    els.showRegisterModeBtn.setAttribute('aria-pressed', String(state.authMode === 'register'));
+                }
+                if (els.sitePasswordInput) {
+                    els.sitePasswordInput.autocomplete = state.authMode === 'login' ? 'current-password' : 'new-password';
+                }
+                if (els.loginBtn) {
+                    if (state.authMode === 'login') {
+                        els.loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
+                    } else if (state.siteVault) {
+                        els.loginBtn.innerHTML = '<i class="fas fa-key"></i> 重新绑定令牌';
+                    } else {
+                        els.loginBtn.innerHTML = '<i class="fas fa-user-plus"></i> 注册并绑定令牌';
+                    }
+                }
+                updateAuthUI();
+            }
+
             function updateAuthUI() {
                 const loggedIn = !!state.githubToken;
                 if (els.loginCredentials) els.loginCredentials.hidden = loggedIn;
                 if (els.loginButtonRow) els.loginButtonRow.hidden = loggedIn;
                 if (els.loggedInPanel) els.loggedInPanel.hidden = !loggedIn;
+                if (els.authModeSwitch) els.authModeSwitch.hidden = loggedIn;
+                if (els.registerExtras) els.registerExtras.hidden = loggedIn || state.authMode !== 'register';
+                if (els.migrateBanner) {
+                    els.migrateBanner.hidden = loggedIn || !state.legacyPlaintextToken || !!state.siteVault;
+                }
+                const canSkipToken = !!(state.legacyPlaintextToken || state.pendingToken);
+                if (els.tokenOptionalHint) els.tokenOptionalHint.hidden = loggedIn || state.authMode !== 'register' || !canSkipToken;
                 if (els.loggedInName) {
                     els.loggedInName.textContent = state.githubUsername
                         ? '已登录为 ' + state.githubUsername
-                        : '已连接 GitHub';
+                        : '已解锁并连接 GitHub';
+                }
+                if (els.loggedInHint) {
+                    const gistHint = state.currentGistId ? '已记住 Gist，无需每次填写。' : '未指定 Gist ID 时会自动查找或创建。';
+                    const githubHint = state.githubLogin ? ' GitHub 用户 ' + state.githubLogin + '。' : '';
+                    els.loggedInHint.textContent = '访问令牌只在内存中，本机只保留加密保险柜。' + gistHint + githubHint;
                 }
                 if (els.logoutBtn) els.logoutBtn.disabled = !loggedIn;
                 if (els.githubTokenInput) {
-                    els.githubTokenInput.required = !loggedIn;
+                    els.githubTokenInput.required = false;
                     if (loggedIn) els.githubTokenInput.value = '';
+                    if (state.authMode === 'register' && canSkipToken) {
+                        els.githubTokenInput.placeholder = '可留空，将加密已有令牌';
+                    } else {
+                        els.githubTokenInput.placeholder = 'ghp_ 或 github_pat_ 开头，只在注册/绑定时粘贴一次';
+                    }
                 }
                 if (els.githubUsernameInput && state.githubUsername && !els.githubUsernameInput.value) {
                     els.githubUsernameInput.value = state.githubUsername;
                 }
                 if (els.githubClientIdInput && state.githubClientId && !els.githubClientIdInput.value) {
                     els.githubClientIdInput.value = state.githubClientId;
+                }
+                if (els.gistIdInput && state.currentGistId && !els.gistIdInput.value) {
+                    els.gistIdInput.value = state.currentGistId;
                 }
                 updateDeviceLoginButton();
                 updateStorageStatus();
@@ -2113,11 +2292,31 @@
             }
 
             function currentToken() {
-                return state.githubToken || localStorage.getItem(STORAGE_KEYS.token) || '';
+                return state.githubToken || '';
             }
 
             function currentGistId() {
-                return (els.gistIdInput.value || state.currentGistId || localStorage.getItem(STORAGE_KEYS.gistId) || '').trim();
+                return (
+                    (els.gistIdInput && els.gistIdInput.value) ||
+                    state.currentGistId ||
+                    (state.siteVault && state.siteVault.gistId) ||
+                    localStorage.getItem(STORAGE_KEYS.gistId) ||
+                    ''
+                ).trim();
+            }
+
+            function rememberGistId(gistId) {
+                if (!gistId) return;
+                state.currentGistId = gistId;
+                if (els.gistIdInput) els.gistIdInput.value = gistId;
+                persistAuthMeta();
+                updateStorageStatus();
+            }
+
+            function clearPasswordFields() {
+                if (els.sitePasswordInput) els.sitePasswordInput.value = '';
+                if (els.sitePasswordConfirmInput) els.sitePasswordConfirmInput.value = '';
+                if (els.githubTokenInput) els.githubTokenInput.value = '';
             }
 
             async function refreshUsernameFromApi() {
@@ -2128,9 +2327,7 @@
                     if (!response.ok) return;
                     const data = await response.json();
                     if (data && data.login) {
-                        state.githubUsername = data.login;
-                        if (els.githubUsernameInput) els.githubUsernameInput.value = data.login;
-                        persistAuthMeta();
+                        state.githubLogin = data.login;
                         updateAuthUI();
                     }
                 } catch (e) {
@@ -2138,34 +2335,154 @@
                 }
             }
 
-            async function loginWithToken(event) {
-                if (event) event.preventDefault();
-                const token = els.githubTokenInput.value.trim();
+            async function resolveBookmarkGist(options) {
+                const opts = options || {};
+                const typed = currentGistId();
+                if (typed) {
+                    rememberGistId(typed);
+                    return typed;
+                }
+                const token = currentToken();
+                if (!token || !SiteAccount) return '';
+                const found = await SiteAccount.findBookmarkGist(token, fetch);
+                if (found && found.id) {
+                    rememberGistId(found.id);
+                    return found.id;
+                }
+                if (!opts.silent) {
+                    showStatus('未找到已有收藏 Gist，首次保存时会自动创建', 'info', { silentToast: !!opts.auto });
+                }
+                return '';
+            }
+
+            async function afterUnlocked(options) {
+                const opts = options || {};
+                persistLocal();
+                updateAuthUI();
+                await refreshUsernameFromApi();
+                try {
+                    const gistId = await resolveBookmarkGist({ auto: true, silent: !!opts.silent });
+                    if (gistId) {
+                        await loadFromGitHub({ auto: true, merge: true, gistId: gistId });
+                    }
+                } catch (error) {
+                    showStatus('本站账号已就绪。自动同步 GitHub 失败: ' + error.message, 'info', { expandStorage: true });
+                }
+            }
+
+            function readRegisterToken() {
+                const typed = els.githubTokenInput ? els.githubTokenInput.value.trim() : '';
+                return typed || state.pendingToken || state.legacyPlaintextToken || '';
+            }
+
+            async function registerSiteAccount() {
+                if (!SiteAccount) {
+                    showStatus('加密模块未加载，无法注册', 'error', { expandStorage: true });
+                    return;
+                }
                 const username = els.githubUsernameInput.value.trim();
-                const gistId = currentGistId();
+                const password = els.sitePasswordInput.value;
+                const confirm = els.sitePasswordConfirmInput.value;
+                const token = readRegisterToken();
+                const gistId = (els.gistIdInput.value || '').trim();
                 state.githubClientId = readClientId();
 
+                if (!username) {
+                    showStatus('请填写本站用户名', 'error', { expandStorage: true });
+                    return;
+                }
+                if (!password || password.length < 6) {
+                    showStatus('本站密码至少 6 位', 'error', { expandStorage: true });
+                    return;
+                }
+                if (password !== confirm) {
+                    showStatus('两次输入的本站密码不一致', 'error', { expandStorage: true });
+                    return;
+                }
                 if (!token) {
-                    showStatus('请填写个人访问令牌（不是 GitHub 登录密码）', 'error', { expandStorage: true });
+                    showStatus('请粘贴个人访问令牌（不是 GitHub 登录密码）', 'error', { expandStorage: true });
+                    return;
+                }
+                if (!SiteAccount.looksLikeAccessToken(token)) {
+                    showStatus('这不像 gist 个人访问令牌。请粘贴 ghp_ / github_pat_ 开头的 token，不要填 GitHub 网站登录密码', 'error', { expandStorage: true });
+                    return;
+                }
+                if (state.siteVault && !confirm('将覆盖本机已有账号保险柜，确定继续？')) return;
+
+                showLoader();
+                try {
+                    const record = await SiteAccount.encryptToken(password, token);
+                    record.username = username;
+                    record.gistId = gistId || state.currentGistId || '';
+                    SiteAccount.writeVault(record, localStorage);
+                    state.siteVault = record;
+                    state.githubToken = token;
+                    state.githubUsername = username;
+                    state.legacyPlaintextToken = '';
+                    state.pendingToken = '';
+                    if (record.gistId) state.currentGistId = record.gistId;
+                    clearPasswordFields();
+                    persistLocal();
+                    updateAuthUI();
+                    showStatus('已注册本站账号并加密保存令牌', 'success');
+                    await afterUnlocked({ silent: true });
+                } catch (error) {
+                    showStatus('注册失败: ' + error.message, 'error', { expandStorage: true });
+                } finally {
+                    hideLoader();
+                }
+            }
+
+            async function loginWithSitePassword() {
+                if (!SiteAccount) {
+                    showStatus('加密模块未加载，无法登录', 'error', { expandStorage: true });
+                    return;
+                }
+                const username = els.githubUsernameInput.value.trim();
+                const password = els.sitePasswordInput.value;
+                const vault = SiteAccount.readVault(localStorage) || state.siteVault;
+                if (!vault) {
+                    showStatus('本机还没有账号保险柜，请先注册', 'error', { expandStorage: true });
+                    setAuthMode('register');
+                    return;
+                }
+                if (!username) {
+                    showStatus('请输入本站用户名', 'error', { expandStorage: true });
+                    return;
+                }
+                if (vault.username && username !== vault.username) {
+                    showStatus('用户名不正确', 'error', { expandStorage: true });
+                    return;
+                }
+                if (!password) {
+                    showStatus('请输入本站密码', 'error', { expandStorage: true });
                     return;
                 }
 
-                state.githubToken = token;
-                state.githubUsername = username;
-                localStorage.setItem(STORAGE_KEYS.token, token);
-                els.githubTokenInput.value = '';
-                if (gistId) {
-                    state.currentGistId = gistId;
-                    els.gistIdInput.value = gistId;
+                showLoader();
+                try {
+                    const token = await SiteAccount.decryptToken(password, vault);
+                    state.siteVault = vault;
+                    state.githubToken = token;
+                    state.githubUsername = vault.username || username;
+                    if (vault.gistId) rememberGistId(vault.gistId);
+                    clearPasswordFields();
+                    showStatus(state.githubUsername ? '已登录为 ' + state.githubUsername : '已解锁本站账号', 'success');
+                    await afterUnlocked({ silent: true });
+                } catch (error) {
+                    showStatus(error.message || '登录失败', 'error', { expandStorage: true });
+                } finally {
+                    hideLoader();
                 }
-                persistAuthMeta();
-                persistLocal();
-                updateAuthUI();
-                showStatus(username ? '已登录为 ' + username : '已保存令牌并标记为已连接', 'success');
-                await refreshUsernameFromApi();
-                if (state.currentGistId || gistId) {
-                    await loadFromGitHub({ auto: true, merge: true });
+            }
+
+            async function submitAuthForm(event) {
+                if (event) event.preventDefault();
+                if (state.authMode === 'register') {
+                    await registerSiteAccount();
+                    return;
                 }
+                await loginWithSitePassword();
             }
 
             function cancelDeviceFlow() {
@@ -2178,11 +2495,13 @@
             }
 
             function logout() {
-                if (!confirm('确定退出登录吗？将清除本机保存的访问令牌。收藏数据仍会留在本机。')) return;
+                if (!confirm('确定退出登录吗？将从内存清除访问令牌。加密保险柜仍留在本机，下次用本站用户名和密码即可解锁。收藏数据不会删除。')) return;
                 cancelDeviceFlow();
                 state.githubToken = '';
-                localStorage.removeItem(STORAGE_KEYS.token);
-                els.githubTokenInput.value = '';
+                state.githubLogin = '';
+                state.pendingToken = '';
+                clearPasswordFields();
+                setAuthMode(state.siteVault ? 'login' : 'register');
                 updateAuthUI();
                 showStatus('已退出登录，收藏仍留在本机', 'info');
             }
@@ -2215,14 +2534,26 @@
                             const data = await response.json();
                             if (data.access_token) {
                                 els.deviceFlowPanel.hidden = true;
+                                if (!state.siteVault) {
+                                    state.pendingToken = data.access_token;
+                                    state.githubToken = '';
+                                    setAuthMode('register');
+                                    showStatus('已获得访问令牌。请设置本站用户名和密码加密保存（不要填 GitHub 登录密码）', 'success', { expandStorage: true });
+                                    persistAuthMeta();
+                                    updateAuthUI();
+                                    resolve();
+                                    return;
+                                }
                                 state.githubToken = data.access_token;
-                                localStorage.setItem(STORAGE_KEYS.token, data.access_token);
                                 persistAuthMeta();
                                 await refreshUsernameFromApi();
                                 updateAuthUI();
-                                showStatus('已通过 GitHub 设备授权登录', 'success');
-                                if (currentGistId()) {
-                                    await loadFromGitHub({ auto: true, merge: true });
+                                showStatus('已通过 GitHub 设备授权登录。新令牌仅在本次有效；要写入保险柜请用「注册」重新绑定', 'success');
+                                try {
+                                    const gistId = await resolveBookmarkGist({ auto: true, silent: true });
+                                    if (gistId) await loadFromGitHub({ auto: true, merge: true, gistId: gistId });
+                                } catch (error) {
+                                    showStatus('已登录，但自动查找 Gist 失败: ' + error.message, 'error', { expandStorage: true });
                                 }
                                 resolve();
                                 return;
@@ -2278,7 +2609,7 @@
                     const blocked = /Failed to fetch|NetworkError|CORS|Load failed/i.test(String(error && error.message));
                     showStatus(
                         '设备登录失败: ' + error.message +
-                        (blocked ? ' 浏览器可能拦截了 GitHub 设备授权接口，请改用个人访问令牌登录。' : ''),
+                        (blocked ? ' 浏览器可能拦截了 GitHub 设备授权接口，请改用个人访问令牌绑定。' : ''),
                         'error',
                         { expandStorage: true }
                     );
@@ -2305,8 +2636,6 @@
                 const opts = options || {};
                 persistLocal();
                 const token = currentToken();
-                const gistId = currentGistId();
-
                 if (!token) {
                     if (!opts.silent) showStatus('已保存到本机。请先登录后再云端同步', 'info', { expandStorage: true });
                     return;
@@ -2314,7 +2643,7 @@
 
                 if (!opts.silent) showLoader();
                 const payload = {
-                    description: '网址管理器数据',
+                    description: SiteAccount ? SiteAccount.GIST_DESCRIPTION : '网址管理器数据',
                     public: false,
                     files: {
                         'urls.json': { content: JSON.stringify(state.urls, null, 2) },
@@ -2323,6 +2652,10 @@
                 };
 
                 try {
+                    let gistId = currentGistId();
+                    if (!gistId) {
+                        gistId = await resolveBookmarkGist({ silent: true, auto: true });
+                    }
                     const response = await fetch(
                         gistId ? 'https://api.github.com/gists/' + gistId : 'https://api.github.com/gists',
                         {
@@ -2335,9 +2668,7 @@
                     if (!response.ok) throw new Error(data.message || '保存失败');
                     if (!data.id) throw new Error('未返回 Gist ID');
 
-                    state.currentGistId = data.id;
-                    els.gistIdInput.value = data.id;
-                    persistAuthMeta();
+                    rememberGistId(data.id);
                     updateAuthUI();
                     if (!opts.silent) showStatus('数据已同步到 GitHub Gist', 'success');
                 } catch (error) {
@@ -2351,19 +2682,24 @@
                 const opts = options || {};
                 const replace = !!opts.replace;
                 const token = currentToken();
-                const gistId = currentGistId();
 
                 if (!token) {
-                    showStatus('请先登录（使用个人访问令牌，不是网站密码）', 'error', { expandStorage: true });
-                    return;
-                }
-                if (!gistId) {
-                    showStatus('请输入 Gist ID，或先保存以创建新 Gist', 'error', { expandStorage: true });
+                    showStatus('请先用本站用户名和密码登录', 'error', { expandStorage: true });
                     return;
                 }
 
                 showLoader();
                 try {
+                    const gistId = opts.gistId || await resolveBookmarkGist({ auto: !!opts.auto, silent: !!opts.auto });
+                    if (!gistId) {
+                        if (opts.auto) {
+                            showStatus('已登录。未找到已有 Gist，首次保存时会自动创建', 'info', { silentToast: true });
+                        } else {
+                            showStatus('未找到收藏 Gist。可直接保存以创建，无需填写 Gist ID', 'info', { expandStorage: true });
+                        }
+                        return;
+                    }
+
                     const response = await fetch('https://api.github.com/gists/' + gistId, {
                         headers: authHeaders(token)
                     });
@@ -2383,9 +2719,7 @@
                     }
 
                     applyCloudData(parsedUrls, parsedFolders, replace);
-                    state.currentGistId = gistId;
-                    localStorage.setItem(STORAGE_KEYS.gistId, gistId);
-                    els.gistIdInput.value = gistId;
+                    rememberGistId(gistId);
                     persistLocal();
                     renderFolders();
                     renderUrls();
@@ -2491,11 +2825,13 @@
                 document.getElementById('loadFromGithubBtn').addEventListener('click', () => loadFromGitHub({ auto: false, merge: true }));
                 document.getElementById('replaceFromGithubBtn').addEventListener('click', replaceFromGitHub);
                 document.getElementById('saveStorageMethodBtn').addEventListener('click', saveStorageMethod);
-                els.githubLoginForm.addEventListener('submit', loginWithToken);
-                els.githubTokenInput.addEventListener('invalid', (event) => {
-                    event.preventDefault();
-                    showStatus('请填写个人访问令牌（不是 GitHub 登录密码）', 'error', { expandStorage: true });
-                });
+                els.githubLoginForm.addEventListener('submit', submitAuthForm);
+                if (els.showLoginModeBtn) {
+                    els.showLoginModeBtn.addEventListener('click', () => setAuthMode('login'));
+                }
+                if (els.showRegisterModeBtn) {
+                    els.showRegisterModeBtn.addEventListener('click', () => setAuthMode('register'));
+                }
                 document.getElementById('logoutBtn').addEventListener('click', logout);
                 document.getElementById('deviceLoginBtn').addEventListener('click', startDeviceFlow);
                 document.getElementById('cancelDeviceBtn').addEventListener('click', () => {
@@ -2617,14 +2953,63 @@
                 return results;
             }
 
-            function init() {
+            async function runSiteAccountSelfTests() {
+                const results = [];
+                const assert = (name, cond) => results.push({ name, ok: !!cond });
+                if (!SiteAccount) {
+                    assert('site account module loaded', false);
+                    return results;
+                }
+                const older = {
+                    id: 'old',
+                    description: '网址管理器数据',
+                    updated_at: '2024-01-01T00:00:00Z',
+                    files: { 'urls.json': { filename: 'urls.json' } }
+                };
+                const newer = {
+                    id: 'new',
+                    description: '其它',
+                    updated_at: '2025-06-01T00:00:00Z',
+                    files: { 'urls.json': { filename: 'urls.json' } }
+                };
+                const picked = SiteAccount.pickBookmarkGist([older, newer, { id: 'x', description: 'nope', files: {} }]);
+                assert('picks newest gist', picked && picked.id === 'new');
+                const secret = 'ghp_browser_selftest_token';
+                const vault = await SiteAccount.encryptToken('pw-selftest', secret);
+                assert('vault omits plaintext', JSON.stringify(vault).indexOf(secret) === -1);
+                assert('decrypt roundtrip', (await SiteAccount.decryptToken('pw-selftest', vault)) === secret);
+                const listed = await SiteAccount.findBookmarkGist('ghp_mock', async (url, options) => {
+                    assert('lists gists with bearer token', url.indexOf('/gists?per_page=100') !== -1 && options.headers.Authorization === 'Bearer ghp_mock');
+                    return { ok: true, json: async () => [older, newer] };
+                });
+                assert('finds gist from mocked list', listed && listed.id === 'new');
+                return results;
+            }
+
+            function inspectAuth() {
+                const vaultRaw = localStorage.getItem(SiteAccount ? SiteAccount.VAULT_KEY : STORAGE_KEYS.vault) || '';
+                return {
+                    hasMemoryToken: !!state.githubToken,
+                    memoryToken: state.githubToken,
+                    username: state.githubUsername,
+                    gistId: state.currentGistId,
+                    authMode: state.authMode,
+                    hasVault: !!state.siteVault,
+                    plaintextToken: localStorage.getItem(STORAGE_KEYS.token),
+                    vaultContainsMemoryToken: !!(state.githubToken && vaultRaw.indexOf(state.githubToken) !== -1)
+                };
+            }
+
+            async function init() {
                 loadLocalData();
+                loadAuthState();
                 els.gistIdInput.value = state.currentGistId;
                 els.githubUsernameInput.value = state.githubUsername;
                 els.githubClientIdInput.value = state.githubClientId;
                 updateEngineLabel();
                 updateExpandButton();
                 setupEventListeners();
+                setAuthMode(state.authMode);
                 renderFolders();
                 renderUrls();
                 updateAuthUI();
@@ -2634,24 +3019,32 @@
                     mergeFolders,
                     migrateUrl,
                     applyCloudData,
-                    runMergeSelfTests
+                    runMergeSelfTests,
+                    runSiteAccountSelfTests,
+                    inspectAuth,
+                    pickBookmarkGist: SiteAccount && SiteAccount.pickBookmarkGist,
+                    findBookmarkGist: SiteAccount && SiteAccount.findBookmarkGist,
+                    encryptToken: SiteAccount && SiteAccount.encryptToken,
+                    decryptToken: SiteAccount && SiteAccount.decryptToken
                 };
 
                 if (/[?&]selftest=1/.test(location.search)) {
-                    const results = runMergeSelfTests();
+                    const mergeResults = runMergeSelfTests();
+                    const vaultResults = await runSiteAccountSelfTests();
+                    const results = mergeResults.concat(vaultResults);
                     const failed = results.filter((item) => !item.ok);
                     showStatus(
-                        failed.length ? ('自测失败: ' + failed.map((item) => item.name).join(', ')) : '合并逻辑自测全部通过',
+                        failed.length ? ('自测失败: ' + failed.map((item) => item.name).join(', ')) : '合并与本站账号自测全部通过',
                         failed.length ? 'error' : 'success',
                         { expandStorage: true }
                     );
                 }
 
-                if (state.githubToken && state.currentGistId) {
-                    loadFromGitHub({ auto: true, merge: true });
-                } else if (state.githubToken) {
-                    showStatus('已登录。输入 Gist ID 加载，或直接保存以创建新 Gist', 'info', { silentToast: true });
-                    refreshUsernameFromApi();
+                if (state.legacyPlaintextToken && !state.siteVault) {
+                    setStorageExpanded(true);
+                    showStatus('检测到明文令牌，请注册本站账号并设置密码后再同步', 'info', { silentToast: true, expandStorage: true });
+                } else if (state.siteVault && !state.githubToken) {
+                    showStatus('请输入本站用户名和密码解锁同步', 'info', { silentToast: true });
                 }
             }
 
