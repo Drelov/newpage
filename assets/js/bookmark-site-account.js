@@ -521,7 +521,7 @@
     function restoreUrlDelete(urls, snapshot) {
         const list = Array.isArray(urls) ? urls.slice() : [];
         if (!snapshot || snapshot.type !== 'url' || !snapshot.url) return list;
-        if (list.some((url) => url && url.id === snapshot.url.id)) return list;
+                if (list.some((url) => url && String(url.id) === String(snapshot.url.id))) return list;
         const restored = migrateUrl(snapshot.url, snapshot.index);
         const index = Math.min(Math.max(0, Number(snapshot.index) || 0), list.length);
         list.splice(index, 0, restored);

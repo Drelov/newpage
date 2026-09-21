@@ -1020,10 +1020,11 @@
         .toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
         }
 
         .toast.show.has-action {
-            pointer-events: auto;
+            cursor: pointer;
         }
 
         .toast-message {
@@ -1036,9 +1037,10 @@
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border-radius: 8px;
-            padding: 6px 12px;
+            padding: 8px 14px;
             font-weight: 700;
             cursor: pointer;
+            pointer-events: auto;
         }
 
         .toast-action:hover,
@@ -1838,17 +1840,22 @@
                 const text = els.toastMessage || els.toast;
                 text.textContent = message;
                 els.toast.className = 'toast show ' + (type || 'info');
+                els.toast.onclick = null;
                 if (els.toastAction) {
                     els.toastAction.onclick = null;
                     if (opts.actionLabel && typeof opts.onAction === 'function') {
                         els.toastAction.hidden = false;
                         els.toastAction.textContent = opts.actionLabel;
                         els.toast.classList.add('has-action');
-                        els.toastAction.onclick = (event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
+                        const run = (event) => {
+                            if (event) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
                             opts.onAction();
                         };
+                        els.toastAction.onclick = run;
+                        els.toast.onclick = run;
                     } else {
                         els.toastAction.hidden = true;
                         els.toastAction.textContent = '撤销';
@@ -1857,6 +1864,7 @@
                 clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => {
                     els.toast.classList.remove('show', 'has-action');
+                    els.toast.onclick = null;
                     if (els.toastAction) {
                         els.toastAction.hidden = true;
                         els.toastAction.onclick = null;
@@ -2331,6 +2339,12 @@
                         }
                         openLink(url.link);
                     });
+                    card.addEventListener('mousedown', (event) => {
+                        if (event.button === 2) card.draggable = false;
+                    });
+                    card.addEventListener('mouseup', () => {
+                        card.draggable = !coarsePointer;
+                    });
                     card.addEventListener('dragstart', (event) => {
                         state.draggingId = url.id;
                         state.didDrag = false;
@@ -2341,13 +2355,24 @@
                     card.addEventListener('drag', () => {
                         state.didDrag = true;
                     });
-                    card.addEventListener('dragend', () => {
+                    card.addEventListener('dragend', (event) => {
                         card.classList.remove('dragging');
+                        card.draggable = !coarsePointer;
                         document.querySelectorAll('.url-button.drag-over').forEach((el) => el.classList.remove('drag-over'));
+                        document.querySelectorAll('.folder-tab.drop-target').forEach((el) => el.classList.remove('drop-target'));
                         if (state.didDrag) state.suppressNextClick = true;
-                        persistReorderFromDom();
+                        const dropId = state.draggingId || url.id;
+                        const hasPoint = Number.isFinite(event.clientX) && Number.isFinite(event.clientY) && (event.clientX !== 0 || event.clientY !== 0);
+                        const under = hasPoint ? document.elementFromPoint(event.clientX, event.clientY) : null;
+                        const folderTab = under && under.closest ? under.closest('.folder-tab') : null;
                         state.draggingId = null;
                         state.didDrag = false;
+                        if (folderTab && folderTab.dataset.dropTab && folderTab.dataset.dropTab !== '全部') {
+                            skipFolderClick = true;
+                            applyCardDropOnFolder(dropId, folderTab.dataset.dropTab);
+                            return;
+                        }
+                        persistReorderFromDom();
                     });
                     card.addEventListener('keydown', (event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
@@ -3398,11 +3423,15 @@
                         els.searchInput.focus();
                     }
                     if (activeModal()) return;
-                    if ((event.key === 'Delete' || event.key === 'Backspace') && document.activeElement && document.activeElement.classList.contains('url-button')) {
-                        event.preventDefault();
-                        state.selectedUrlId = document.activeElement.dataset.id;
-                        deleteSelectedUrl();
-                        return;
+                    if ((event.key === 'Delete' || event.key === 'Backspace') && !event.target.closest('input, select, textarea')) {
+                        if (document.activeElement && document.activeElement.classList.contains('url-button')) {
+                            state.selectedUrlId = document.activeElement.dataset.id;
+                        }
+                        if (state.selectedUrlId) {
+                            event.preventDefault();
+                            deleteSelectedUrl();
+                            return;
+                        }
                     }
                     if (event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowUp')) {
                         event.preventDefault();
@@ -3530,6 +3559,36 @@
                 return results;
             }
 
+            function runUndoUiSelfTests() {
+                const results = [];
+                const assert = (name, cond) => results.push({ name, ok: !!cond });
+                const backupUrls = state.urls.slice();
+                const backupSelected = state.selectedUrlId;
+                const probeId = 'undo-probe-selftest';
+                state.urls = state.urls.filter((url) => url.id !== probeId);
+                state.urls.push(migrateUrl({
+                    id: probeId,
+                    name: 'UndoProbe',
+                    link: 'https://undo.example',
+                    updatedAt: 1,
+                    order: nextOrder()
+                }));
+                commitChange({ cloud: false });
+                state.selectedUrlId = probeId;
+                deleteSelectedUrl();
+                assert('delete removes probe', !state.urls.some((url) => url.id === probeId));
+                assert('armUndo keeps snapshot', !!(pendingUndo && pendingUndo.type === 'url' && pendingUndo.url && pendingUndo.url.id === probeId));
+                assert('toast shows undo action', !!(els.toastAction && !els.toastAction.hidden && els.toast.classList.contains('has-action')));
+                if (els.toastAction) els.toastAction.click();
+                else undoLastChange();
+                assert('toast click restores probe', state.urls.some((url) => url.id === probeId && url.name === 'UndoProbe'));
+                state.urls = backupUrls;
+                state.selectedUrlId = backupSelected;
+                clearPendingUndo();
+                commitChange({ cloud: false });
+                return results;
+            }
+
             async function runSiteAccountSelfTests() {
                 const results = [];
                 const assert = (name, cond) => results.push({ name, ok: !!cond });
@@ -3612,11 +3671,13 @@
                         encryptToken: SiteAccount && SiteAccount.encryptToken,
                         decryptToken: SiteAccount && SiteAccount.decryptToken,
                         snapshotUrlDelete: SiteAccount && SiteAccount.snapshotUrlDelete,
-                        restoreUrlDelete: SiteAccount && SiteAccount.restoreUrlDelete
+                        restoreUrlDelete: SiteAccount && SiteAccount.restoreUrlDelete,
+                        runUndoUiSelfTests
                     };
                     const mergeResults = runMergeSelfTests();
                     const vaultResults = await runSiteAccountSelfTests();
-                    const results = mergeResults.concat(vaultResults);
+                    const undoResults = runUndoUiSelfTests();
+                    const results = mergeResults.concat(vaultResults, undoResults);
                     const failed = results.filter((item) => !item.ok);
                     showStatus(
                         failed.length ? ('自测失败: ' + failed.map((item) => item.name).join(', ')) : '合并与本站账号自测全部通过',
