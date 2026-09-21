@@ -1560,6 +1560,7 @@
             let pressTimer = null;
             let authChannel = null;
             let skipFolderClick = false;
+            const UNDO_TTL_MS = 20000;
             let pendingUndo = null;
             let modalFocusRestorer = null;
             const pointerDrag = {
@@ -1939,10 +1940,10 @@
                 showUndoBanner(message);
                 undoTimer = setTimeout(() => {
                     if (pendingUndo === snapshot) clearPendingUndo();
-                }, 8000);
+                }, UNDO_TTL_MS);
                 showToast(message, 'info', {
                     actionLabel: '撤销',
-                    duration: 8000,
+                    duration: UNDO_TTL_MS,
                     onAction: () => undoLastChange()
                 });
             }
