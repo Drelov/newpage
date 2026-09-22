@@ -1,5 +1,9 @@
 @echo off
 cd /d "%~dp0"
+if exist "%~dp0pythonw.exe" (
+  start "" "%~dp0pythonw.exe" "%~dp0main.py"
+  exit /b 0
+)
 if exist "%~dp0程控台.exe" (
   start "" "%~dp0程控台.exe"
   exit /b 0
@@ -19,5 +23,5 @@ if %errorlevel%==0 (
   start "" python.exe "%~dp0main.py"
   exit /b 0
 )
-echo Chengkongtai.exe was not found, and Python 3 is not on PATH.
+echo pythonw.exe was not found. Use the zip package, or install Python and enable Add to PATH.
 pause

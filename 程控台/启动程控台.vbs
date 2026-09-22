@@ -3,6 +3,10 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 base = fso.GetParentFolderName(WScript.ScriptFullName)
 shell.CurrentDirectory = base
 On Error Resume Next
+If fso.FileExists(base & "\pythonw.exe") Then
+  shell.Run """" & base & "\pythonw.exe"" """ & base & "\main.py""", 0, False
+  WScript.Quit 0
+End If
 If fso.FileExists(base & "\程控台.exe") Then
   shell.Run """" & base & "\程控台.exe""", 1, False
   WScript.Quit 0
@@ -13,5 +17,5 @@ If Err.Number <> 0 Then
   shell.Run "pyw.exe -3 """ & base & "\main.py""", 0, False
 End If
 If Err.Number <> 0 Then
-  MsgBox "Chengkongtai.exe was not found, and Python 3 is not on PATH.", 48, "Chengkongtai"
+  MsgBox "pythonw.exe was not found. Use the zip package, or install Python and enable Add to PATH.", 48, "Chengkongtai"
 End If

@@ -51,8 +51,13 @@ $ini = "[.ShellClassInfo]`r`nIconResource=assets\icon.ico,0`r`nInfoTip=程控台
 
 Write-Host ''
 Write-Host '程控台已放到:' $dest
-Write-Host '双击其中的「启动程控台.vbs」打开，不会留下黑色命令行窗口。'
+$pythonw = Join-Path $dest 'pythonw.exe'
+$main = Join-Path $dest 'main.py'
+if (Test-Path -LiteralPath $pythonw) {
+  Start-Process -FilePath $pythonw -ArgumentList $main -WorkingDirectory $dest
+  Write-Host '已启动。以后可双击该文件夹里的 Start.cmd 或 程控台.exe。'
+} else {
+  Write-Host '双击其中的 Start.cmd 或「启动程控台.vbs」打开。'
+}
 Write-Host '如果文件夹图标没有马上变化，重新打开 D:\Softwave 即可。'
-Write-Host ''
-Write-Host '按 Enter 关闭'
-[void](Read-Host)
+

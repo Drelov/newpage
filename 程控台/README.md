@@ -2,30 +2,25 @@
 
 本机应用程序调度控制台。把桌面上的快捷方式收进这里，需要时再启动。界面按工业软件来排，名字和图标都能看出这是在集中启动程序：四格面板，不是游戏货架，也不是伪装成系统组件。
 
-## 放到 D:\Softwave
+## 放到本机（不要用自定义 exe）
 
-需要 **64 位 Windows**。用浏览器下载 `程控台.exe`（或 `Chengkongtai.exe`），双击即可：
+请下载 zip，用资源管理器解压后再运行。自编的安装 exe 在不少 Windows 11 上会被直接拒绝加载。
 
-- 若存在 `D:\Softwave\新建文件夹` 且还没有 `程控台`，先把新建文件夹改名
-- 把程序解压到 `D:\Softwave\程控台`
-- 写入文件夹图标并打开程控台
+64 位系统（含常见 ARM 笔记本的兼容模式）用 `Chengkongtai.zip`。只有 32 位 Windows 才用 `Chengkongtai-x86.zip`。
 
-不要用微信 / QQ 转发这个 exe，聊天软件常会把安装包传坏，Windows 就会提示「无法在电脑上运行」。请从 GitHub 用浏览器下载。
+1. 用**浏览器**下载 zip，不要用微信 / QQ 转发
+2. 右键 → 解压到 `D:\Softwave\程控台`（若还没有这个文件夹，可先解压到任意位置）
+3. 打开解压后的文件夹，双击 `Start.cmd`（或 `Start.vbs`，没有黑色窗口）
+4. 若要固定到 `D:\Softwave\程控台`，再双击 `Install.cmd`
 
-安装包自带 64 位 Python 运行库，本机不用再装 Python。日常启动双击 `D:\Softwave\程控台\程控台.exe`。
+文件夹里的 `程控台.exe` / `Chengkongtai.exe` 是官方 Python 的 `pythonw.exe` 副本，用来双击启动；真正干活的是旁边的 `pythonw.exe` + `main.py`。
 
-源码目录里也可以执行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\放置到本机.ps1
-```
-
-那会把当前文件夹复制到 `D:\Softwave\程控台`，仍可用系统 Python 跑 `启动程控台.vbs`。
+若系统开着 S 模式，任何非商店程序都无法运行，需要先在「设置 → 系统 → 激活」退出 S 模式。
 
 ## 启动
 
-- 安装后双击 `程控台.exe`：没有黑色命令行窗口，也不依赖系统 Python
-- 源码方式需要 Python 3.10 或更高版本，安装时勾选 **Add python.exe to PATH**，然后双击 `启动程控台.vbs`
+- 解压后双击 `Start.cmd` 或 `Start.vbs`
+- 源码目录也可双击 `启动程控台.vbs`（需要本机 Python 3.10+ 并加入 PATH）
 
 程序只监听 `127.0.0.1`，台账写在本文件夹的 `data\library.json`。把整个文件夹拷走，登记过的程序会一起走。
 
@@ -49,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File .\放置到本机.ps1
 python -m unittest discover -s tests -v
 ```
 
-重新打包 64 位 Windows 安装程序（Linux 上需要 `mingw-w64`）：
+重新打包 Windows zip：
 
 ```bash
 python packaging/build_windows.py
