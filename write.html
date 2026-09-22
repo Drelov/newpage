@@ -312,7 +312,8 @@
                 const raw = (window.marked && marked.parse) ? marked.parse(md) : md;
                 const safe = (window.DOMPurify && DOMPurify.sanitize) ? DOMPurify.sanitize(raw) : raw;
                 els.preview.innerHTML = Blog.rewritePreviewImages(safe, repo.owner, repo.repo);
-                if (window.renderMathInElement) {
+                const runMath = () => {
+                    if (!window.renderMathInElement) return;
                     renderMathInElement(els.preview, {
                         delimiters: [
                             { left: '$$', right: '$$', display: true },
@@ -320,7 +321,9 @@
                         ],
                         throwOnError: false
                     });
-                }
+                };
+                runMath();
+                if (!window.renderMathInElement) setTimeout(runMath, 400);
             }
 
             function applyInsert(result) {
@@ -356,9 +359,14 @@
 
             function renderTexPreview() {
                 els.texPreview.textContent = '';
+                const tex = (els.texInput.value || '').trim();
+                if (!tex) {
+                    els.texPreview.innerHTML = '<p class="preview-empty">输入 TeX 后预览</p>';
+                    return;
+                }
                 if (!window.katex) return;
                 try {
-                    katex.render(els.texInput.value || 'E=mc^2', els.texPreview, {
+                    katex.render(tex, els.texPreview, {
                         displayMode: els.texDisplay.checked,
                         throwOnError: false
                     });
