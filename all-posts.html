@@ -3,71 +3,48 @@ title: 所有博客文章
 ---
 <div class="container">
   <header>
+    <p class="site-nav">
+      <a href="index.html">首页</a>
+      ·
+      <a href="write.html">写文章</a>
+      ·
+      <a href="new2.html">网址收藏</a>
+    </p>
     <h1>所有博客文章</h1>
   </header>
 
-  <!-- 标签区域 -->
   <section class="tags">
     <h2>标签</h2>
     <div class="tag-list">
-      <button class="tag-button active" data-tag="all">全部</button>
+      <button class="tag-button active" data-tag="all" type="button">全部</button>
       {% for tag in site.tags %}
-        <button class="tag-button" data-tag="{{ tag[0] }}">{{ tag[0] }}</button>
+        <button class="tag-button" data-tag="{{ tag[0] }}" type="button">{{ tag[0] }}</button>
       {% endfor %}
-      <a href="https://github.com/Drelov/newpage/new/main/_posts" class="button" target="_blank">记录</a>
+      <a href="write.html" class="button">写文章</a>
     </div>
   </section>
 
-  <!-- 博客列表 -->
   <section class="post-list">
     <ul>
-  {% for post in site.posts %}
-    {% assign has_tags = post.tags | size > 0 %} <!-- 判断是否有标签 -->
-    {% if has_tags %}
-      {% for tag in post.tags %}
-        <li class="post-item" data-tags="{{ post.tags | join: ',' }}">
+      {% for post in site.posts %}
+        <li class="post-item" data-tags="{{ post.tags | join: ',' }}{% unless post.tags.size > 0 %}other{% endunless %}">
           <a href="/newpage{{ post.url }}" class="post-link">
             <h3>{{ post.title }}</h3>
           </a>
-          <p class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</p>
+          <p class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M" }}</p>
         </li>
       {% endfor %}
-    {% else %}
-      <!-- 没有标签的文章 -->
-      <li class="post-item" data-tags="other">
-        <a href="/newpage{{ post.url }}" class="post-link">
-          <h3>{{ post.title }}</h3>
-        </a>
-        <p class="post-date">{{ post.date | date: "%Y-%m-%d %H:%M:%S" }}</p>
-      </li>
-    {% endif %}
-  {% endfor %}
-</ul>
-
+    </ul>
   </section>
 </div>
 
-<!-- 样式 -->
 <style>
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: 'Arial', sans-serif;
-  }
-
-  h1, h2 {
-    text-align: center;
-    color: #333;
-    margin-bottom: 30px;
-  }
-
-  .tag-list {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-
-  .tag-button {
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+  h1, h2 { text-align: center; color: #333; margin-bottom: 24px; }
+  .site-nav { text-align: center; margin-bottom: 8px; }
+  .site-nav a, .button { color: #4a6fa5; }
+  .tag-list { text-align: center; margin-bottom: 30px; }
+  .tag-button, .button {
     display: inline-block;
     padding: 10px 20px;
     margin: 5px;
@@ -76,83 +53,46 @@ title: 所有博客文章
     border-radius: 5px;
     font-size: 16px;
     cursor: pointer;
-    transition: all 0.3s;
+    text-decoration: none;
+    color: #333;
   }
-
-  .tag-button.active, .tag-button:hover {
-    background-color: #4CAF50;
-    color: white;
-  }
-
-  .post-list ul {
-    list-style: none;
-    padding: 0;
-  }
-
+  .tag-button.active, .tag-button:hover, .button:hover { background-color: #4a6fa5; color: white; }
+  .post-list ul { list-style: none; padding: 0; }
   .post-item {
-    display: none; /* 默认隐藏 */
+    display: none;
     padding: 20px;
     margin-bottom: 15px;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     border-radius: 5px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-
-  .post-item.active {
-    display: block; /* 显示选中的标签文章 */
-  }
-
-  .post-link {
-    color: #333;
-    font-size: 20px;
-    font-weight: bold;
-    text-decoration: none;
-  }
-
-  .post-link:hover {
-    color: #4CAF50;
-  }
-
-  .post-date {
-    font-size: 14px;
-    color: #888;
-  }
+  .post-item.active { display: block; }
+  .post-link { color: #333; text-decoration: none; }
+  .post-link:hover { color: #4a6fa5; }
+  .post-date { font-size: 14px; color: #888; }
 </style>
 
-<!-- JavaScript -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll(".tag-button");
     const posts = document.querySelectorAll(".post-item");
 
-    buttons.forEach(button => {
+    function showTag(tag) {
+      posts.forEach((post) => {
+        const postTags = (post.getAttribute("data-tags") || "").split(',');
+        const match = tag === "all" || postTags.indexOf(tag) !== -1;
+        post.classList.toggle("active", match);
+      });
+    }
+
+    buttons.forEach((button) => {
       button.addEventListener("click", () => {
-        // 移除其他按钮的激活状态
-        buttons.forEach(btn => btn.classList.remove("active"));
+        buttons.forEach((btn) => btn.classList.remove("active"));
         button.classList.add("active");
-
-        const tag = button.getAttribute("data-tag");
-
-        // 显示匹配的文章，隐藏其他文章
-        posts.forEach(post => {
-          const postTags = post.getAttribute("data-tags").split(',');
-
-          // 如果选择的是 "全部" 标签，则显示所有文章
-          if (tag === "all") {
-            post.classList.add("active"); // 显示所有文章
-          } else if (tag === "other" && postTags.includes("other")) {
-            post.classList.add("active"); // 显示没有标签的文章
-          } else if (postTags.includes(tag)) {
-            post.classList.add("active"); // 显示具有当前标签的文章
-          } else {
-            post.classList.remove("active"); // 隐藏不匹配的文章
-          }
-        });
+        showTag(button.getAttribute("data-tag"));
       });
     });
 
-    // 默认显示 "全部" 标签
-    document.querySelector('.tag-button[data-tag="编程"]').click();
+    showTag("all");
   });
 </script>

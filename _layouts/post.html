@@ -6,14 +6,18 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>{{ page.title }} - {{ site.title }}</title>
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
-  <!-- 引入 Font Awesome 图标库 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
   <header>
     <nav>
-      <a href="{{ '/' | relative_url }}">首页</a>
-      <a href="{{ '/all-posts.html' | relative_url }}">所有博客</a>
+      <a href="index.html">首页</a>
+      <a href="all-posts.html">所有文章</a>
+      <a href="write.html">写文章</a>
+      <a href="new2.html">网址收藏</a>
     </nav>
   </header>
 
@@ -41,50 +45,51 @@
 
   <!-- JavaScript 动态生成复制按钮和编辑跳转按钮 -->
   <script>
-    document.querySelectorAll('pre').forEach((pre) => {
-      // 创建复制按钮，使用 Font Awesome 图标
-      const button = document.createElement('button');
-      button.classList.add('copy-btn');
-      
-      // 创建 Font Awesome 图标
-      const icon = document.createElement('i');
-      icon.classList.add('fas', 'fa-copy'); // 使用复制图标
-      button.appendChild(icon);
-
-      // 将按钮插入到代码块的顶部
-      pre.insertBefore(button, pre.firstChild);
-
-      // 绑定复制功能
-      button.addEventListener('click', () => {
-        const code = pre.querySelector('code').innerText;
-
-        // 创建一个临时文本框来复制内容
-        const textArea = document.createElement('textarea');
-        textArea.value = code;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-
-        // 改变按钮提示文本
-        button.innerHTML = '<i class="fas fa-check"></i>'; // 修改为复制成功的图标
-        setTimeout(() => {
-          button.innerHTML = '<i class="fas fa-copy"></i>'; // 恢复为复制图标
-        }, 2000);
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('pre').forEach((pre) => {
+        const button = document.createElement('button');
+        button.classList.add('copy-btn');
+        const icon = document.createElement('i');
+        icon.classList.add('fas', 'fa-copy');
+        button.appendChild(icon);
+        pre.insertBefore(button, pre.firstChild);
+        button.addEventListener('click', () => {
+          const codeEl = pre.querySelector('code');
+          const code = codeEl ? codeEl.innerText : pre.innerText;
+          const textArea = document.createElement('textarea');
+          textArea.value = code;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          button.innerHTML = '<i class="fas fa-check"></i>';
+          setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-copy"></i>';
+          }, 2000);
+        });
       });
+
+      const editButton = document.getElementById('edit-btn');
+      if (editButton) {
+        const pageName = '{{ page.path }}';
+        editButton.addEventListener('click', () => {
+          window.location.href = 'write.html?path=' + encodeURIComponent(pageName);
+        });
+      }
+
+      const content = document.querySelector('.post-content');
+      if (content && window.renderMathInElement) {
+        renderMathInElement(content, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
     });
-
-    // 动态生成编辑按钮的链接
-    const editButton = document.getElementById('edit-btn');
-    if (editButton) {
-      const pageName = '{{ page.path }}';  // 获取当前页面的文件名（例如：2024-12-05-ei.md）
-      const githubEditUrl = `https://github.com/Drelov/newpage/edit/main/${pageName}`;
-
-      editButton.addEventListener('click', () => {
-        // 跳转到 GitHub 的编辑页面
-        window.open(githubEditUrl, '_blank');
-      });
-    }
   </script>
 
 </body>

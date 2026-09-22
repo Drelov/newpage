@@ -316,6 +316,7 @@ async function run() {
     assert.ok(new2.indexOf('applyCardDropOnFolder') !== -1);
     assert.ok(new2.indexOf('icons.duckduckgo.com') !== -1);
     assert.ok(new2.indexOf('google.com/s2/favicons') === -1);
+    assert.ok(new2.indexOf('write.html') !== -1);
     assert.ok(new2.indexOf('theme-dark') !== -1);
     assert.ok(new2.indexOf('moveFocusedCard') !== -1);
     assert.ok(new2.indexOf('Alt + 方向键') !== -1);

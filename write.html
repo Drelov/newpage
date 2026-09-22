@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写文章 - Drelo</title>
+    <meta name="description" content="在浏览器里写博客、插入图片和公式，保存到 GitHub 后由 Pages 发布。">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff, #e6ebff);
+            color: #333;
+            min-height: 100vh;
+        }
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        h1 { font-size: 1.6rem; color: #4a6fa5; font-weight: 600; }
+        .site-nav a {
+            color: #4a6fa5;
+            margin-left: 12px;
+            text-decoration: none;
+            font-size: 0.92rem;
+        }
+        .site-nav a:hover { text-decoration: underline; }
+        .auth-bar, .editor-shell, .side-card {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(74,111,165,0.12);
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 8px 24px rgba(74,111,165,0.08);
+        }
+        .auth-bar { margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .auth-bar input {
+            padding: 8px 10px;
+            border: 1px solid #d5deed;
+            border-radius: 8px;
+            min-width: 140px;
+        }
+        .hint { color: #7d8da7; font-size: 0.85rem; }
+        .layout { display: grid; grid-template-columns: 250px 1fr; gap: 14px; }
+        @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+        .post-list { list-style: none; max-height: 70vh; overflow: auto; }
+        .post-list button {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            padding: 8px 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #4a6fa5;
+        }
+        .post-list button.active, .post-list button:hover { background: rgba(74,111,165,0.1); }
+        .meta-row { display: grid; grid-template-columns: 1fr 140px 160px; gap: 8px; margin-bottom: 8px; }
+        @media (max-width: 860px) { .meta-row { grid-template-columns: 1fr; } }
+        .meta-row input, .title-input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d5deed;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        .title-input { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .toolbar button, .action-btn {
+            border: 1px solid #d5deed;
+            background: #fff;
+            color: #4a6fa5;
+            border-radius: 8px;
+            padding: 7px 10px;
+            cursor: pointer;
+        }
+        .toolbar button:hover, .action-btn:hover { background: rgba(74,111,165,0.08); }
+        .action-btn.primary { background: #4a6fa5; color: #fff; border-color: #4a6fa5; }
+        .editor-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 420px; }
+        @media (max-width: 860px) { .editor-split { grid-template-columns: 1fr; } }
+        textarea {
+            width: 100%;
+            min-height: 420px;
+            border: 1px solid #d5deed;
+            border-radius: 10px;
+            padding: 12px;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            resize: vertical;
+        }
+        .preview {
+            min-height: 420px;
+            border: 1px solid #d5deed;
+            border-radius: 10px;
+            padding: 12px 16px;
+            background: #fbfcff;
+            overflow: auto;
+        }
+        .preview img { max-width: 100%; }
+        .preview-empty { color: #a6b7d4; }
+        .save-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+        .status { font-size: 0.88rem; color: #7d8da7; }
+        .status.error { color: #c0392b; }
+        .status.success { color: #2e8b57; }
+        .toast {
+            position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%);
+            background: #2f3f5b; color: #fff; padding: 10px 16px; border-radius: 10px;
+            opacity: 0; pointer-events: none; transition: opacity .2s;
+        }
+        .toast.show { opacity: 1; }
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
+            align-items: center; justify-content: center; padding: 16px; z-index: 20;
+        }
+        .modal.open { display: flex; }
+        .modal-card {
+            background: #fff; border-radius: 14px; padding: 20px; width: min(520px, 100%);
+        }
+        .modal-card textarea { min-height: 90px; }
+        .modal-card .preview { min-height: 80px; margin: 8px 0; }
+        .drop-hover textarea { outline: 2px dashed #4a6fa5; }
+        html.theme-dark body { background: #151b26; color: #dbe6f6; }
+        html.theme-dark .auth-bar, html.theme-dark .editor-shell, html.theme-dark .side-card,
+        html.theme-dark .preview, html.theme-dark .modal-card { background: #232b3b; color: #dbe6f6; border-color: #3c4860; }
+        html.theme-dark input, html.theme-dark textarea, html.theme-dark .toolbar button { background: #2a3345; color: #dbe6f6; border-color: #3c4860; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1><i class="fas fa-pen-nib"></i> 写文章</h1>
+            <nav class="site-nav">
+                <a href="index.html">博客首页</a>
+                <a href="all-posts.html">所有文章</a>
+                <a href="new2.html">网址收藏</a>
+            </nav>
+        </header>
+        <p class="hint" style="margin-bottom:12px;">在这里直接写 Markdown、粘贴或上传图片、插入公式。保存会提交到 GitHub，Pages 大约一两分钟后更新。令牌需要本仓库 Contents 写权限（可与 gist 权限写在同一令牌里）。</p>
+
+        <div class="auth-bar" id="authBar">
+            <span id="authLabel">登录本站账号后才能保存到 GitHub</span>
+            <input id="siteUser" placeholder="本站用户名" autocomplete="username">
+            <input id="sitePass" type="password" placeholder="本站密码" autocomplete="current-password">
+            <button class="action-btn primary" id="loginBtn" type="button">解锁</button>
+            <button class="action-btn" id="logoutBtn" type="button" hidden>退出</button>
+            <a class="hint" href="new2.html">去收藏页注册 / 更换令牌</a>
+        </div>
+
+        <div class="layout">
+            <aside class="side-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <strong>文章</strong>
+                    <button class="action-btn primary" id="newPostBtn" type="button">新建</button>
+                </div>
+                <ul class="post-list" id="postList"></ul>
+                <p class="hint" id="listHint">登录后加载仓库中的 _posts。</p>
+            </aside>
+            <section class="editor-shell" id="editorShell">
+                <input class="title-input" id="titleInput" placeholder="文章标题">
+                <div class="meta-row">
+                    <input id="tagInput" placeholder="标签，例如 编程">
+                    <input id="permalinkInput" placeholder="链接名">
+                    <input id="dateInput" placeholder="日期">
+                </div>
+                <div class="toolbar">
+                    <button type="button" data-wrap="**|**|粗体" title="粗体">B</button>
+                    <button type="button" data-wrap="*|*|斜体" title="斜体"><i>I</i></button>
+                    <button type="button" data-wrap="## | |标题">H2</button>
+                    <button type="button" data-wrap="[|](https://)|链接文字">链接</button>
+                    <button type="button" data-wrap="`|`|code">代码</button>
+                    <button type="button" id="imageBtn"><i class="fas fa-image"></i> 图片</button>
+                    <button type="button" id="formulaBtn"><i class="fas fa-square-root-variable"></i> 公式</button>
+                    <button type="button" id="previewToggle">预览</button>
+                </div>
+                <input type="file" id="imageInput" accept="image/*" multiple hidden>
+                <div class="editor-split">
+                    <textarea id="mdEditor" placeholder="在此写作。可直接粘贴或拖入图片。公式用 $a^2$ 或 $$ E=mc^2 $$。"></textarea>
+                    <div class="preview" id="preview"><p class="preview-empty">预览</p></div>
+                </div>
+                <div class="save-row">
+                    <button class="action-btn primary" id="saveBtn" type="button"><i class="fas fa-cloud-upload-alt"></i> 保存到 GitHub</button>
+                    <span class="status" id="statusMsg">草稿只存在本机，点保存才会发布。</span>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal" id="formulaModal">
+        <div class="modal-card">
+            <h2 style="margin-bottom:10px;color:#4a6fa5;">插入公式</h2>
+            <textarea id="texInput" placeholder="例如 \int_0^1 x^2 dx"></textarea>
+            <div class="preview" id="texPreview"></div>
+            <label class="hint"><input type="checkbox" id="texDisplay" checked> 独立成行</label>
+            <div class="save-row">
+                <button class="action-btn primary" id="insertTexBtn" type="button">插入</button>
+                <button class="action-btn" id="cancelTexBtn" type="button">取消</button>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script src="assets/js/bookmark-site-account.js"></script>
+    <script src="assets/js/blog-site.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@13.0.3/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script>
+        (() => {
+            const SiteAccount = window.BookmarkSiteAccount;
+            const Blog = window.BlogSite;
+            const repo = Blog.detectRepo(location);
+            const state = {
+                token: '',
+                posts: [],
+                sha: '',
+                path: '',
+                dirty: false
+            };
+
+            const els = {
+                siteUser: document.getElementById('siteUser'),
+                sitePass: document.getElementById('sitePass'),
+                loginBtn: document.getElementById('loginBtn'),
+                logoutBtn: document.getElementById('logoutBtn'),
+                authLabel: document.getElementById('authLabel'),
+                postList: document.getElementById('postList'),
+                listHint: document.getElementById('listHint'),
+                titleInput: document.getElementById('titleInput'),
+                tagInput: document.getElementById('tagInput'),
+                permalinkInput: document.getElementById('permalinkInput'),
+                dateInput: document.getElementById('dateInput'),
+                mdEditor: document.getElementById('mdEditor'),
+                preview: document.getElementById('preview'),
+                saveBtn: document.getElementById('saveBtn'),
+                statusMsg: document.getElementById('statusMsg'),
+                toast: document.getElementById('toast'),
+                imageInput: document.getElementById('imageInput'),
+                formulaModal: document.getElementById('formulaModal'),
+                texInput: document.getElementById('texInput'),
+                texPreview: document.getElementById('texPreview'),
+                texDisplay: document.getElementById('texDisplay'),
+                editorShell: document.getElementById('editorShell')
+            };
+
+            let toastTimer = null;
+            let draftTimer = null;
+
+            function showToast(message) {
+                els.toast.textContent = message;
+                els.toast.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2800);
+            }
+
+            function setStatus(message, type) {
+                els.statusMsg.textContent = message;
+                els.statusMsg.className = 'status' + (type ? ' ' + type : '');
+            }
+
+            function currentPost() {
+                return {
+                    title: els.titleInput.value.trim(),
+                    tag: els.tagInput.value.trim(),
+                    permalink: els.permalinkInput.value.trim(),
+                    date: els.dateInput.value.trim() || Blog.formatPostDate(new Date()),
+                    body: els.mdEditor.value
+                };
+            }
+
+            function fillForm(post, path, sha) {
+                els.titleInput.value = post.title || '';
+                els.tagInput.value = post.tag || '';
+                els.permalinkInput.value = post.permalink || Blog.slugify(post.title || '');
+                els.dateInput.value = post.date || Blog.formatPostDate(new Date());
+                els.mdEditor.value = post.body || '';
+                state.path = path || '';
+                state.sha = sha || '';
+                state.dirty = false;
+                renderPreview();
+            }
+
+            function blankPost() {
+                fillForm({
+                    title: '',
+                    tag: '记录',
+                    permalink: '',
+                    date: Blog.formatPostDate(new Date()),
+                    body: ''
+                }, '', '');
+                els.titleInput.focus();
+            }
+
+            function renderPreview() {
+                const md = els.mdEditor.value || '';
+                if (!md.trim()) {
+                    els.preview.innerHTML = '<p class="preview-empty">预览</p>';
+                    return;
+                }
+                const raw = (window.marked && marked.parse) ? marked.parse(md) : md;
+                const safe = (window.DOMPurify && DOMPurify.sanitize) ? DOMPurify.sanitize(raw) : raw;
+                els.preview.innerHTML = Blog.rewritePreviewImages(safe, repo.owner, repo.repo);
+                if (window.renderMathInElement) {
+                    renderMathInElement(els.preview, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                }
+            }
+
+            function applyInsert(result) {
+                els.mdEditor.value = result.value;
+                els.mdEditor.focus();
+                els.mdEditor.setSelectionRange(result.start, result.end);
+                state.dirty = true;
+                renderPreview();
+                scheduleDraft();
+            }
+
+            function insertSnippet(snippet) {
+                applyInsert(Blog.insertText(els.mdEditor.value, els.mdEditor.selectionStart, els.mdEditor.selectionEnd, snippet));
+            }
+
+            function wrapFromDataset(spec) {
+                const parts = spec.split('|');
+                applyInsert(Blog.wrapSelection(
+                    els.mdEditor.value,
+                    els.mdEditor.selectionStart,
+                    els.mdEditor.selectionEnd,
+                    parts[0],
+                    parts[1],
+                    parts[2]
+                ));
+            }
+
+            function insertFormula() {
+                const tex = els.texInput.value;
+                insertSnippet(Blog.markdownFormula(tex, els.texDisplay.checked));
+                els.formulaModal.classList.remove('open');
+            }
+
+            function renderTexPreview() {
+                els.texPreview.textContent = '';
+                if (!window.katex) return;
+                try {
+                    katex.render(els.texInput.value || 'E=mc^2', els.texPreview, {
+                        displayMode: els.texDisplay.checked,
+                        throwOnError: false
+                    });
+                } catch (error) {
+                    els.texPreview.textContent = error.message;
+                }
+            }
+
+            async function insertImageFiles(fileList) {
+                const files = [...(fileList || [])].filter(Blog.isImageFile);
+                if (!files.length) return;
+                if (!state.token) {
+                    setStatus('请先登录再上传图片。图片会写入仓库 assets/blog/', 'error');
+                    showToast('请先解锁本站账号');
+                    return;
+                }
+                setStatus('正在上传图片…');
+                for (const file of files) {
+                    const name = Blog.imageFilename(file.name, new Date());
+                    const path = Blog.IMAGE_DIR + '/' + name;
+                    const bytes = new Uint8Array(await file.arrayBuffer());
+                    await Blog.putBinaryFile(state.token, path, bytes, { owner: repo.owner, repo: repo.repo });
+                    const alt = (file.name || 'image').replace(/\.[^.]+$/, '');
+                    insertSnippet(Blog.markdownImage(alt, Blog.publicImageUrl(name, repo.pageBase)) + '\n');
+                }
+                setStatus('图片已上传，保存文章后随 Pages 发布。', 'success');
+                showToast('图片已插入');
+            }
+
+            function scheduleDraft() {
+                clearTimeout(draftTimer);
+                draftTimer = setTimeout(() => {
+                    Blog.writeDraft(Object.assign({ path: state.path, sha: state.sha }, currentPost()));
+                }, 400);
+            }
+
+            function updateAuthUI() {
+                const on = !!state.token;
+                els.loginBtn.hidden = on;
+                els.siteUser.hidden = on;
+                els.sitePass.hidden = on;
+                els.logoutBtn.hidden = !on;
+                els.authLabel.textContent = on ? '已解锁，可读取并保存仓库文章' : '登录本站账号后才能保存到 GitHub';
+            }
+
+            async function loadList() {
+                if (!state.token) {
+                    els.listHint.textContent = '登录后加载仓库中的 _posts。';
+                    return;
+                }
+                els.listHint.textContent = '正在读取…';
+                try {
+                    state.posts = await Blog.listPosts(state.token, { owner: repo.owner, repo: repo.repo });
+                    els.postList.innerHTML = '';
+                    state.posts.forEach((item) => {
+                        const li = document.createElement('li');
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = item.name.replace(/\.md$/i, '');
+                        if (item.path === state.path) btn.classList.add('active');
+                        btn.addEventListener('click', () => openPost(item.path));
+                        li.appendChild(btn);
+                        els.postList.appendChild(li);
+                    });
+                    els.listHint.textContent = state.posts.length ? ('共 ' + state.posts.length + ' 篇') : '还没有文章';
+                } catch (error) {
+                    els.listHint.textContent = error.message;
+                }
+            }
+
+            async function openPost(filePath) {
+                if (state.dirty && !confirm('当前修改尚未保存，确定打开另一篇？')) return;
+                setStatus('正在打开…');
+                const file = await Blog.getFile(state.token, filePath, { owner: repo.owner, repo: repo.repo });
+                fillForm(Blog.parseFrontMatter(file.text), file.path, file.sha);
+                setStatus('已打开 ' + file.name);
+                loadList();
+            }
+
+            async function savePost() {
+                const post = currentPost();
+                if (!post.title) {
+                    setStatus('请填写标题', 'error');
+                    return;
+                }
+                if (!state.token) {
+                    setStatus('请先解锁本站账号。令牌需要本仓库 Contents 写权限。', 'error');
+                    return;
+                }
+                if (!post.permalink) post.permalink = Blog.slugify(post.title);
+                els.permalinkInput.value = post.permalink;
+                const markdown = Blog.serializePost(post);
+                const filePath = state.path || (Blog.POSTS_DIR + '/' + Blog.postFilename(post.title, new Date()));
+                setStatus('正在保存…');
+                try {
+                    const result = await Blog.putFile(state.token, filePath, markdown, {
+                        owner: repo.owner,
+                        repo: repo.repo,
+                        sha: state.sha,
+                        message: (state.path ? 'blog: update ' : 'blog: add ') + filePath
+                    });
+                    state.path = (result.content && result.content.path) || filePath;
+                    state.sha = (result.content && result.content.sha) || '';
+                    state.dirty = false;
+                    Blog.clearDraft();
+                    setStatus('已保存。GitHub Pages 大约一两分钟后可以打开这篇文章。', 'success');
+                    showToast('已保存到 GitHub');
+                    loadList();
+                } catch (error) {
+                    setStatus(error.message, 'error');
+                }
+            }
+
+            async function login() {
+                const vault = SiteAccount.readVault(localStorage);
+                if (!vault) {
+                    setStatus('本机还没有账号保险柜，请先到网址收藏页注册。', 'error');
+                    return;
+                }
+                try {
+                    const token = await SiteAccount.decryptToken(els.sitePass.value, vault);
+                    if (els.siteUser.value.trim() && vault.username && els.siteUser.value.trim() !== vault.username) {
+                        throw new Error('用户名或密码不正确，无法解锁令牌');
+                    }
+                    state.token = token;
+                    SiteAccount.writeSessionToken(token, sessionStorage);
+                    els.sitePass.value = '';
+                    updateAuthUI();
+                    await loadList();
+                    const queryPath = new URLSearchParams(location.search).get('path');
+                    if (queryPath) await openPost(queryPath);
+                    setStatus('已解锁', 'success');
+                } catch (error) {
+                    setStatus(error.message, 'error');
+                }
+            }
+
+            function logout() {
+                state.token = '';
+                SiteAccount.clearSessionToken(sessionStorage);
+                updateAuthUI();
+                setStatus('已退出，草稿仍留在本机');
+            }
+
+            function restoreSession() {
+                const token = SiteAccount.readSessionToken(sessionStorage);
+                if (token) state.token = token;
+                const vault = SiteAccount.readVault(localStorage);
+                if (vault && vault.username) els.siteUser.value = vault.username;
+                updateAuthUI();
+            }
+
+            function bindEditor() {
+                document.querySelectorAll('.toolbar [data-wrap]').forEach((btn) => {
+                    btn.addEventListener('click', () => wrapFromDataset(btn.getAttribute('data-wrap')));
+                });
+                document.getElementById('imageBtn').addEventListener('click', () => els.imageInput.click());
+                els.imageInput.addEventListener('change', async (event) => {
+                    try { await insertImageFiles(event.target.files); } catch (error) { setStatus(error.message, 'error'); }
+                    event.target.value = '';
+                });
+                document.getElementById('formulaBtn').addEventListener('click', () => {
+                    els.formulaModal.classList.add('open');
+                    els.texInput.focus();
+                    renderTexPreview();
+                });
+                document.getElementById('insertTexBtn').addEventListener('click', insertFormula);
+                document.getElementById('cancelTexBtn').addEventListener('click', () => els.formulaModal.classList.remove('open'));
+                els.texInput.addEventListener('input', renderTexPreview);
+                els.texDisplay.addEventListener('change', renderTexPreview);
+                document.getElementById('previewToggle').addEventListener('click', renderPreview);
+                document.getElementById('newPostBtn').addEventListener('click', () => {
+                    if (state.dirty && !confirm('当前修改尚未保存，确定新建？')) return;
+                    blankPost();
+                });
+                document.getElementById('saveBtn').addEventListener('click', () => savePost().catch((error) => setStatus(error.message, 'error')));
+                els.loginBtn.addEventListener('click', () => login());
+                els.logoutBtn.addEventListener('click', logout);
+                els.mdEditor.addEventListener('input', () => { state.dirty = true; renderPreview(); scheduleDraft(); });
+                els.titleInput.addEventListener('input', () => {
+                    state.dirty = true;
+                    if (!state.path) els.permalinkInput.value = Blog.slugify(els.titleInput.value);
+                    scheduleDraft();
+                });
+                ['tagInput', 'permalinkInput', 'dateInput'].forEach((id) => {
+                    document.getElementById(id).addEventListener('input', () => { state.dirty = true; scheduleDraft(); });
+                });
+                els.mdEditor.addEventListener('paste', async (event) => {
+                    const files = [...(event.clipboardData && event.clipboardData.files) || []];
+                    if (!files.some(Blog.isImageFile)) return;
+                    event.preventDefault();
+                    try { await insertImageFiles(files); } catch (error) { setStatus(error.message, 'error'); }
+                });
+                els.editorShell.addEventListener('dragover', (event) => {
+                    if ([...event.dataTransfer.items].some((item) => item.kind === 'file')) {
+                        event.preventDefault();
+                        els.editorShell.classList.add('drop-hover');
+                    }
+                });
+                els.editorShell.addEventListener('dragleave', () => els.editorShell.classList.remove('drop-hover'));
+                els.editorShell.addEventListener('drop', async (event) => {
+                    els.editorShell.classList.remove('drop-hover');
+                    const files = [...(event.dataTransfer && event.dataTransfer.files) || []];
+                    if (!files.some(Blog.isImageFile)) return;
+                    event.preventDefault();
+                    try { await insertImageFiles(files); } catch (error) { setStatus(error.message, 'error'); }
+                });
+                document.addEventListener('keydown', (event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                        event.preventDefault();
+                        savePost().catch((error) => setStatus(error.message, 'error'));
+                    }
+                    if (event.key === 'Escape') els.formulaModal.classList.remove('open');
+                });
+            }
+
+            async function init() {
+                const theme = localStorage.getItem('bookmarkTheme') || '';
+                if (theme === 'dark' || (!theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('theme-dark');
+                }
+                restoreSession();
+                const draft = Blog.readDraft();
+                const queryPath = new URLSearchParams(location.search).get('path');
+                if (draft && draft.body) {
+                    fillForm(draft, draft.path || '', draft.sha || '');
+                    state.dirty = true;
+                    setStatus('已恢复本机草稿');
+                } else {
+                    blankPost();
+                }
+                bindEditor();
+                if (state.token) {
+                    await loadList();
+                    if (queryPath && queryPath !== state.path) {
+                        try { await openPost(queryPath); } catch (error) { setStatus(error.message, 'error'); }
+                    }
+                }
+            }
+
+            window.insertImageFiles = insertImageFiles;
+            window.insertFormula = insertFormula;
+            init();
+        })();
+    </script>
+</body>
+</html>

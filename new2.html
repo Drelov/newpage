@@ -58,6 +58,20 @@
             font-weight: 300;
         }
 
+        .site-nav {
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .site-nav a {
+            color: #4a6fa5;
+            text-decoration: none;
+        }
+
+        .site-nav a:hover {
+            text-decoration: underline;
+        }
+
         .search-section,
         .url-section {
             margin-bottom: 30px;
@@ -1150,6 +1164,7 @@
         }
 
         html.theme-dark .subtitle,
+        html.theme-dark .site-nav a,
         html.theme-dark .search-hint,
         html.theme-dark .drag-hint,
         html.theme-dark .logged-in-hint,
@@ -1251,6 +1266,7 @@
             </button>
             <h1><i class="fab fa-github"></i> 简约网址管理器</h1>
             <p class="subtitle">本地优先保存，可选同步到 GitHub Gist</p>
+            <p class="site-nav"><a href="index.html">博客</a> · <a href="all-posts.html">所有文章</a> · <a href="write.html">写文章</a></p>
         </header>
 
         <section class="search-section">
@@ -2712,12 +2728,13 @@
             }
 
             function addUrl() {
-                const name = document.getElementById('urlName').value.trim();
                 const link = normalizeLink(document.getElementById('urlLink').value);
+                let name = document.getElementById('urlName').value.trim();
                 const folder = document.getElementById('urlFolder').value;
+                if (!name && link) name = hostnameOf(link) || '未命名';
 
-                if (!name || !link) {
-                    showStatus('请填写网址名称和链接', 'error');
+                if (!link) {
+                    showStatus('请填写网址', 'error');
                     return;
                 }
                 if (!isSafeHttpUrl(link)) {
@@ -3449,6 +3466,13 @@
                 document.getElementById('addUrlBtn').addEventListener('click', () => {
                     populateFolderSelect('urlFolder', state.currentFolder === '全部' || state.currentFolder === '星标' || state.currentFolder === '未分类' ? '' : state.currentFolder);
                     openModal('addUrlModal');
+                });
+                document.getElementById('urlName').addEventListener('paste', (event) => {
+                    const text = ((event.clipboardData || window.clipboardData).getData('text') || '').trim();
+                    if (!text) return;
+                    if (/^(https?:\/\/|www\.)/i.test(text) || /^[\w.-]+\.[a-z]{2,}([/:?]|$)/i.test(text)) {
+                        document.getElementById('urlLink').value = text;
+                    }
                 });
                 document.getElementById('saveToGithubBtn').addEventListener('click', () => saveToGitHub({ silent: false }));
                 document.getElementById('loadFromGithubBtn').addEventListener('click', () => loadFromGitHub({ auto: false, merge: true }));
