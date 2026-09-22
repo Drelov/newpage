@@ -44,3 +44,4 @@ __pycache__/
 程控台/packaging/build/
 程控台/dist/*
 !程控台/dist/程控台.exe
+!程控台/dist/Chengkongtai.exe

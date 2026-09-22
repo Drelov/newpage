@@ -236,5 +236,24 @@ class ServerTests(unittest.TestCase):
             self.assertIn("text/css", response.headers.get("Content-Type", ""))
 
 
+class PackTests(unittest.TestCase):
+    def test_installer_is_64bit_sfx(self):
+        path = ROOT / "dist" / "程控台.exe"
+        if not path.is_file():
+            self.skipTest("installer not built")
+        data = path.read_bytes()
+        self.assertTrue(data.startswith(b"MZ"))
+        pe = int.from_bytes(data[0x3C:0x40], "little")
+        self.assertEqual(data[pe : pe + 4], b"PE\x00\x00")
+        machine = int.from_bytes(data[pe + 4 : pe + 6], "little")
+        self.assertEqual(machine, 0x8664)
+        self.assertEqual(data[-8:], b"CKT1ZIP1")
+        zip_size = int.from_bytes(data[-16:-8], "little")
+        start = len(data) - 16 - zip_size
+        self.assertGreater(zip_size, 1000)
+        self.assertGreaterEqual(start, 64)
+        self.assertEqual(data[start : start + 2], b"PK")
+
+
 if __name__ == "__main__":
     unittest.main()

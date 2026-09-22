@@ -4,14 +4,15 @@
 
 ## 放到 D:\Softwave
 
-Windows 上直接双击 `程控台.exe` 安装包。它会：
+需要 **64 位 Windows**。用浏览器下载 `程控台.exe`（或 `Chengkongtai.exe`），双击即可：
 
 - 若存在 `D:\Softwave\新建文件夹` 且还没有 `程控台`，先把新建文件夹改名
-- 把程序装到 `D:\Softwave\程控台`
-- 写入文件夹图标
-- 装好后可勾选立刻打开
+- 把程序解压到 `D:\Softwave\程控台`
+- 写入文件夹图标并打开程控台
 
-安装包自带 Python 运行库，本机不用再装 Python。日常启动双击 `D:\Softwave\程控台\程控台.exe`。
+不要用微信 / QQ 转发这个 exe，聊天软件常会把安装包传坏，Windows 就会提示「无法在电脑上运行」。请从 GitHub 用浏览器下载。
+
+安装包自带 64 位 Python 运行库，本机不用再装 Python。日常启动双击 `D:\Softwave\程控台\程控台.exe`。
 
 源码目录里也可以执行：
 
@@ -48,7 +49,7 @@ powershell -ExecutionPolicy Bypass -File .\放置到本机.ps1
 python -m unittest discover -s tests -v
 ```
 
-重新打包 Windows 安装程序（Linux 上需要 `mingw-w64` 和 `nsis`）：
+重新打包 64 位 Windows 安装程序（Linux 上需要 `mingw-w64`）：
 
 ```bash
 python packaging/build_windows.py
