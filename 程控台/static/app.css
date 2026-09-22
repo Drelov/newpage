@@ -102,6 +102,7 @@ button, input, select { outline: none; }
   font-family: var(--mono);
   font-size: 10px;
 }
+.search input { text-overflow: ellipsis; }
 .nav {
   flex: 1;
   min-height: 0;
