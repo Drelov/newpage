@@ -1,4 +1,5 @@
 import http.client
+import io
 import json
 import sys
 import tempfile
@@ -275,6 +276,22 @@ class PackTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         self.assertFalse(module._boot())
+
+    def test_sfx_installer_is_pe64(self):
+        path = ROOT / "dist" / "Chengkongtai.exe"
+        if not path.is_file():
+            self.skipTest("sfx not built")
+        data = path.read_bytes()
+        self.assertTrue(data.startswith(b"MZ"))
+        pe = int.from_bytes(data[0x3C:0x40], "little")
+        self.assertEqual(int.from_bytes(data[pe + 4 : pe + 6], "little"), 0x8664)
+        self.assertEqual(data[-8:], b"CKT1ZIP1")
+        zip_size = int.from_bytes(data[-16:-8], "little")
+        start = len(data) - 16 - zip_size
+        self.assertEqual(data[start : start + 2], b"PK")
+        with zipfile.ZipFile(io.BytesIO(data[start : start + zip_size])) as zipped:
+            self.assertIn("pythonw.exe", zipped.namelist())
+            self.assertIn("main.py", zipped.namelist())
 
 
 if __name__ == "__main__":

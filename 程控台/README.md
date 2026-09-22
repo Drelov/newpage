@@ -13,6 +13,8 @@
 3. 打开解压后的文件夹，双击 `Start.cmd`（或 `Start.vbs`，没有黑色窗口）
 4. 若要固定到 `D:\Softwave\程控台`，再双击 `Install.cmd`
 
+也可以双击 `Chengkongtai.exe`：它会写入 `D:\Softwave\程控台`（若该处已有隐藏的 desktop.ini，会先去掉系统属性再覆盖）。写不进 D 盘时会改放到本机 AppData。
+
 文件夹里的 `程控台.exe` / `Chengkongtai.exe` 是官方 Python 的 `pythonw.exe` 副本，用来双击启动；真正干活的是旁边的 `pythonw.exe` + `main.py`。
 
 若系统开着 S 模式，任何非商店程序都无法运行，需要先在「设置 → 系统 → 激活」退出 S 模式。

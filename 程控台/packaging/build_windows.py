@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import subprocess
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -15,6 +16,22 @@ PACKAGING = Path(__file__).resolve().parent
 CACHE = PACKAGING / "cache"
 BUILD = PACKAGING / "build"
 DIST = ROOT / "dist"
+
+MINIZ_URL = "https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip"
+MINIZ_SHA256 = "ada38db0b703a56d3dd6d57bf84a9c5d664921d870d8fea4db153979fb5332c5"
+WIN_GCC = "x86_64-w64-mingw32-gcc"
+WIN_WINDRES = "x86_64-w64-mingw32-windres"
+PE_FLAGS = [
+    "-municode",
+    "-mwindows",
+    "-Os",
+    "-static",
+    "-finput-charset=UTF-8",
+    "-Wl,--major-os-version,6",
+    "-Wl,--minor-os-version,1",
+    "-Wl,--major-subsystem-version,6",
+    "-Wl,--minor-subsystem-version,1",
+]
 
 PYTHON_VERSION = "3.12.10"
 VARIANTS = {
@@ -121,12 +138,87 @@ def build_variant(key: str) -> Path:
     return outfile
 
 
+def fetch_miniz() -> Path:
+    archive = fetch(MINIZ_URL, CACHE / "miniz-3.0.2.zip", MINIZ_SHA256)
+    dest = BUILD / "miniz"
+    dest.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive) as zipped:
+        zipped.extract("miniz.c", dest)
+        zipped.extract("miniz.h", dest)
+    return dest
+
+
+def wrap_sfx(payload_dir: Path) -> Path:
+    if shutil.which(WIN_GCC) is None or shutil.which(WIN_WINDRES) is None:
+        print("未找到 mingw，跳过 exe 安装包", flush=True)
+        return payload_dir
+    miniz = fetch_miniz()
+    icon = BUILD / "icon.ico"
+    shutil.copy2(ROOT / "assets" / "icon.ico", icon)
+    rc_obj = BUILD / "setup_res.o"
+    subprocess.check_call(
+        [
+            WIN_WINDRES,
+            "-c",
+            "65001",
+            "-I",
+            str(BUILD),
+            "-i",
+            str(PACKAGING / "launcher.rc"),
+            "-o",
+            str(rc_obj),
+        ],
+        cwd=BUILD,
+    )
+    miniz_obj = BUILD / "miniz.o"
+    subprocess.check_call(
+        [
+            WIN_GCC,
+            "-c",
+            "-Os",
+            "-DMINIZ_NO_STDIO",
+            "-DMINIZ_NO_ARCHIVE_WRITING_APIS",
+            "-I",
+            str(miniz),
+            str(miniz / "miniz.c"),
+            "-o",
+            str(miniz_obj),
+        ]
+    )
+    stub = BUILD / "setup_stub.exe"
+    subprocess.check_call(
+        [
+            WIN_GCC,
+            *PE_FLAGS,
+            "-I",
+            str(miniz),
+            str(PACKAGING / "setup.c"),
+            str(miniz_obj),
+            str(rc_obj),
+            "-o",
+            str(stub),
+        ]
+    )
+    archive = BUILD / "sfx-payload.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zipped:
+        for path in sorted(payload_dir.rglob("*")):
+            if path.is_file():
+                zipped.write(path, path.relative_to(payload_dir).as_posix())
+    payload = archive.read_bytes()
+    outfile = DIST / "Chengkongtai.exe"
+    outfile.write_bytes(stub.read_bytes() + payload + len(payload).to_bytes(8, "little") + b"CKT1ZIP1")
+    shutil.copy2(outfile, DIST / "程控台.exe")
+    print(f"已生成 {outfile} ({outfile.stat().st_size} bytes)", flush=True)
+    return outfile
+
+
 def build() -> None:
     if BUILD.exists():
         shutil.rmtree(BUILD)
     BUILD.mkdir(parents=True)
     build_variant("amd64")
     build_variant("win32")
+    wrap_sfx(BUILD / "amd64")
 
 
 if __name__ == "__main__":
