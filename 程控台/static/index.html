@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>程控台 · 应用调度</title>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="chassis">
+    <aside class="rail">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="4" y="4" width="56" height="56" rx="14" fill="#24343E"/>
+          <rect x="14" y="14" width="15" height="15" rx="3.5" fill="#E4EEEA"/>
+          <rect x="35" y="14" width="15" height="15" rx="3.5" fill="#E4EEEA"/>
+          <rect x="14" y="35" width="15" height="15" rx="3.5" fill="#E4EEEA"/>
+          <rect x="35" y="35" width="15" height="15" rx="3.5" fill="#C6A15B"/>
+        </svg>
+        <div class="brand-text">
+          <div class="brand-name">程控台</div>
+          <div class="brand-en">应用调度控制台</div>
+        </div>
+      </div>
+      <label class="search">
+        <input id="q" type="search" placeholder="检索名称、备注或路径" autocomplete="off" />
+        <kbd>Ctrl K</kbd>
+      </label>
+      <nav id="nav" aria-label="分类">
+        <button type="button" class="nav-btn active" data-section="overview"><span>总览</span><em id="count-overview">0</em></button>
+        <button type="button" class="nav-btn" data-section="favorite"><span>常用</span><em id="count-favorite">0</em></button>
+        <button type="button" class="nav-btn" data-section="recent"><span>最近</span><em id="count-recent">0</em></button>
+        <div class="nav-label">分类</div>
+        <button type="button" class="nav-btn" data-section="office"><span><i class="dot office"></i>办公</span><em id="count-office">0</em></button>
+        <button type="button" class="nav-btn" data-section="dev"><span><i class="dot dev"></i>研发</span><em id="count-dev">0</em></button>
+        <button type="button" class="nav-btn" data-section="tools"><span><i class="dot tools"></i>工具</span><em id="count-tools">0</em></button>
+        <button type="button" class="nav-btn" data-section="media"><span><i class="dot media"></i>媒体</span><em id="count-media">0</em></button>
+        <button type="button" class="nav-btn" data-section="other"><span><i class="dot other"></i>其他</span><em id="count-other">0</em></button>
+      </nav>
+      <div class="rail-actions">
+        <button type="button" class="btn solid" id="btn-add">登记应用</button>
+        <button type="button" class="btn quiet" id="btn-import">导入桌面快捷方式</button>
+      </div>
+      <div class="rail-foot">
+        <span>数据保存在本文件夹</span>
+        <span id="version">1.0.0</span>
+      </div>
+    </aside>
+    <section class="workspace">
+      <header class="top">
+        <div class="titles">
+          <div class="kicker" id="kicker">应用调度</div>
+          <div class="title-row">
+            <h1 id="title">运行总览</h1>
+            <span class="count-pill" id="count-pill">0</span>
+          </div>
+          <p id="subtitle">集中登记、检索并启动本机程序</p>
+        </div>
+        <div class="top-tools">
+          <select id="sort" class="tool" aria-label="排序">
+            <option value="name">按名称</option>
+            <option value="recent">按最近启动</option>
+            <option value="count">按使用次数</option>
+          </select>
+          <div class="seg" id="view" role="group" aria-label="视图">
+            <button type="button" data-view="grid" class="on">卡片</button>
+            <button type="button" data-view="list">列表</button>
+          </div>
+          <button type="button" class="tool" id="btn-ledger">台账</button>
+        </div>
+      </header>
+      <div class="scroll" id="scroll">
+        <section class="stats" id="stats" hidden></section>
+        <section class="recent" id="recent" hidden></section>
+        <div id="main">
+          <div class="empty">
+            <h2>正在读取台账</h2>
+          </div>
+        </div>
+      </div>
+      <footer class="status">
+        <div class="live" id="live"><i></i><span>在线</span></div>
+        <span id="status-text">就绪</span>
+        <span class="spacer"></span>
+        <time id="clock"></time>
+        <button type="button" id="btn-quit">退出程控台</button>
+      </footer>
+    </section>
+  </div>
+  <div id="modal-root"></div>
+  <div id="menu" class="menu" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <script>window.DESK_TOKEN = "__DESK_TOKEN__";</script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
