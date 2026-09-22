@@ -40,3 +40,7 @@ __pycache__/
 *.py[cod]
 程控台/data/
 程控台/desktop.ini
+程控台/packaging/cache/
+程控台/packaging/build/
+程控台/dist/*
+!程控台/dist/程控台.exe

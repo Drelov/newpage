@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 
 from desk import __version__
 from desk.library import Library
+from desk.paths import resolve_roots
 from desk.server import DeskApp, serve
 from desk.system import browse, launch_app, recycle_shortcuts, reveal, scan_desktop
 
@@ -132,8 +133,9 @@ def main() -> None:
     parser.add_argument("--data", default="")
     args = parser.parse_args()
 
-    os.chdir(ROOT)
-    data_dir = Path(args.data).resolve() if args.data else ROOT / "data"
+    resource_root, home = resolve_roots(argv0_file=__file__)
+    os.chdir(home)
+    data_dir = Path(args.data).resolve() if args.data else home / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     instance_path = data_dir / "instance.json"
     log = make_logger(data_dir / "desk.log")
@@ -150,7 +152,7 @@ def main() -> None:
     app = DeskApp(
         library,
         token=token,
-        app_root=ROOT,
+        app_root=resource_root,
         version=__version__,
         launcher=launch_app,
         scanner=scan_desktop,

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from desk.library import Library, LibraryError, target_status
+from desk.paths import resolve_roots
 from desk.server import DeskApp, serve
 from desk.system import normalize_scanned_items, shortcut_is_recyclable, split_args
 
@@ -66,6 +67,35 @@ class LibraryTests(unittest.TestCase):
         self.assertIsNone(target_status("notepad.exe"))
         self.assertFalse(target_status("/this/path/does/not/exist"))
         self.assertTrue(target_status(__file__))
+
+
+class PathTests(unittest.TestCase):
+    def test_source_layout_uses_main_parent(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        main = Path(tmp.name) / "main.py"
+        main.write_text("#", encoding="utf-8")
+        resource, home = resolve_roots(argv0_file=str(main), frozen=False, executable="/usr/bin/python3")
+        self.assertEqual(resource, main.parent.resolve())
+        self.assertEqual(home, main.parent.resolve())
+
+    def test_frozen_layout_keeps_data_next_to_exe(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        mei = Path(tmp.name) / "mei"
+        installed = Path(tmp.name) / "installed"
+        mei.mkdir()
+        installed.mkdir()
+        exe = installed / "desk.exe"
+        exe.write_bytes(b"")
+        resource, home = resolve_roots(
+            argv0_file=str(mei / "main.py"),
+            frozen=True,
+            meipass=str(mei),
+            executable=str(exe),
+        )
+        self.assertEqual(resource, mei.resolve())
+        self.assertEqual(home, installed.resolve())
 
 
 class SystemTests(unittest.TestCase):
