@@ -1,0 +1,9 @@
+/dist/
+/android/.gradle/
+/android/**/build/
+/android/local.properties
+/harmony/.hvigor/
+/harmony/oh_modules/
+/harmony/**/build/
+/harmony/**/oh_modules/
+*.exe

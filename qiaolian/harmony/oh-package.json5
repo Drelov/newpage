@@ -1,0 +1,11 @@
+{
+  "modelVersion": "5.0.1",
+  "name": "qiaolian",
+  "version": "1.0.0",
+  "description": "桥联：电脑和鸿蒙手机的 Wi-Fi 互联",
+  "main": "",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.QiaoLian" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#2FBFB0</item>
+        <item name="colorOnPrimary">#08332F</item>
+        <item name="android:statusBarColor">#10141B</item>
+        <item name="android:navigationBarColor">#10141B</item>
+        <item name="android:windowBackground">#10141B</item>
+        <item name="android:textColor">#E8EEF8</item>
+    </style>
+</resources>
