@@ -28,7 +28,7 @@ type preset struct {
 }
 
 var presets = []preset{
-	{"流畅，延迟更低", 640, 30, 35},
+	{"流畅，延迟更低", 540, 30, 28},
 	{"均衡", 800, 24, 48},
 	{"高清", 1080, 15, 65},
 }
@@ -71,14 +71,17 @@ type desk struct {
 	presetBox   *walk.ComboBox
 	brush       *walk.SolidColorBrush
 
-	mu       sync.Mutex
-	bmp      *walk.Bitmap
-	imgRect  walk.Rectangle
-	downX    int
-	downY    int
-	downNorm struct{ x, y float64 }
-	pressed  bool
-	gen      int
+	mu        sync.Mutex
+	bmp       *walk.Bitmap
+	imgRect   walk.Rectangle
+	downX     int
+	downY     int
+	downNorm  struct{ x, y float64 }
+	pressed   bool
+	dragging  bool
+	gen       int
+	inputRun  bool
+	inputWait []qlp.Input
 }
 
 // Run opens the desktop window.
@@ -186,6 +189,7 @@ func (d *desk) screenPage() TabPage {
 				PaintMode:           PaintBuffered,
 				PaintPixels:         d.paint,
 				OnMouseDown:         d.mouseDown,
+				OnMouseMove:         d.mouseMove,
 				OnMouseUp:           d.mouseUp,
 			},
 			Composite{
@@ -195,7 +199,7 @@ func (d *desk) screenPage() TabPage {
 					PushButton{Text: "发送文字", OnClicked: d.sendText},
 				},
 			},
-			Label{Text: "在画面上按下并拖动是滑动，轻点是点击。左右拖不会再拖动图片。"},
+			Label{Text: "按住拖动时手机跟着动，松开是点击。画面应显示完整手机屏幕。"},
 		},
 	}
 }
@@ -448,14 +452,14 @@ func (d *desk) showLatency() {
 func (d *desk) paint(canvas *walk.Canvas, _ walk.Rectangle) error {
 	cb := d.screen.ClientBoundsPixels()
 	bounds := walk.Rectangle{Width: cb.Width, Height: cb.Height}
-	_ = canvas.FillRectangle(d.brush, bounds)
+	_ = canvas.FillRectanglePixels(d.brush, bounds)
 	if d.bmp == nil || bounds.Width < 2 || bounds.Height < 2 {
 		d.imgRect = walk.Rectangle{}
 		return nil
 	}
 	dst := letterbox(bounds, d.bmp.Size())
 	d.imgRect = dst
-	return canvas.DrawImageStretched(d.bmp, dst)
+	return canvas.DrawImageStretchedPixels(d.bmp, dst)
 }
 
 func letterbox(bounds walk.Rectangle, src walk.Size) walk.Rectangle {
@@ -482,11 +486,28 @@ func (d *desk) mouseDown(x, y int, _ walk.MouseButton) {
 	nx, ny, ok := d.normalize(x, y)
 	if !ok {
 		d.pressed = false
+		d.dragging = false
 		return
 	}
 	d.pressed = true
+	d.dragging = false
 	d.downX, d.downY = x, y
 	d.downNorm.x, d.downNorm.y = nx, ny
+}
+
+func (d *desk) mouseMove(x, y int, _ walk.MouseButton) {
+	if !d.pressed {
+		return
+	}
+	if !d.dragging {
+		if abs(x-d.downX)+abs(y-d.downY) < 8 {
+			return
+		}
+		d.dragging = true
+		d.input(qlp.Input{Action: "down", X: d.downNorm.x, Y: d.downNorm.y})
+	}
+	nx, ny := d.clampNorm(x, y)
+	d.input(qlp.Input{Action: "move", X: nx, Y: ny})
 }
 
 func (d *desk) mouseUp(x, y int, _ walk.MouseButton) {
@@ -494,20 +515,13 @@ func (d *desk) mouseUp(x, y int, _ walk.MouseButton) {
 		return
 	}
 	d.pressed = false
-	nx, ny := d.clampNorm(x, y)
-	moved := abs(x-d.downX) + abs(y-d.downY)
-	if moved < 12 {
+	if !d.dragging {
 		d.input(qlp.Input{Action: "tap", X: d.downNorm.x, Y: d.downNorm.y})
 		return
 	}
-	d.input(qlp.Input{
-		Action:   "swipe",
-		X:        d.downNorm.x,
-		Y:        d.downNorm.y,
-		X2:       nx,
-		Y2:       ny,
-		Duration: 280,
-	})
+	d.dragging = false
+	nx, ny := d.clampNorm(x, y)
+	d.input(qlp.Input{Action: "up", X: nx, Y: ny})
 }
 
 func (d *desk) normalize(x, y int) (float64, float64, bool) {
@@ -559,15 +573,42 @@ func (d *desk) sendText() {
 }
 
 func (d *desk) input(in qlp.Input) {
-	client := d.app.Client()
-	if client == nil {
+	if d.app.Client() == nil {
 		return
 	}
-	go func() {
+	d.mu.Lock()
+	if in.Action == "move" && len(d.inputWait) > 0 && d.inputWait[len(d.inputWait)-1].Action == "move" {
+		d.inputWait[len(d.inputWait)-1] = in
+	} else {
+		d.inputWait = append(d.inputWait, in)
+	}
+	start := !d.inputRun
+	d.inputRun = true
+	d.mu.Unlock()
+	if start {
+		go d.drainInput()
+	}
+}
+
+func (d *desk) drainInput() {
+	for {
+		d.mu.Lock()
+		if len(d.inputWait) == 0 {
+			d.inputRun = false
+			d.mu.Unlock()
+			return
+		}
+		in := d.inputWait[0]
+		d.inputWait = d.inputWait[1:]
+		d.mu.Unlock()
+		client := d.app.Client()
+		if client == nil {
+			continue
+		}
 		if err := client.Input(in); err != nil {
 			d.mw.Synchronize(func() { d.setStatus(err.Error()) })
 		}
-	}()
+	}
 }
 
 func (d *desk) reloadFiles() {
