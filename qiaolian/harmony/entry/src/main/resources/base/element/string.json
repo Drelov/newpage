@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "桥联"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "和电脑通过 Wi-Fi 传文件、投屏"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "桥联"
+    },
+    {
+      "name": "download_reason",
+      "value": "用于在电脑上查看和收发下载目录里的文件"
+    },
+    {
+      "name": "documents_reason",
+      "value": "用于在电脑上查看和收发文档目录里的文件"
+    }
+  ]
+}

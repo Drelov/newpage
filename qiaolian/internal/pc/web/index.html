@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf" content="__CSRF__">
+  <title>桥联</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>桥联</h1>
+          <p class="muted" id="pc-name">这台电脑</p>
+        </div>
+      </div>
+      <section>
+        <h2>附近的手机</h2>
+        <ul id="devices" class="devices"></ul>
+        <p id="devices-empty" class="muted empty">还没有发现手机。手机打开桥联后，会出现在这里。</p>
+      </section>
+      <form id="connect-form" class="connect">
+        <label>手机 IP<input id="ip" name="ip" autocomplete="off" placeholder="192.168.1.20" required></label>
+        <div class="row">
+          <label>端口<input id="port" name="port" inputmode="numeric" value="37622"></label>
+          <label>配对码<input id="code" name="code" inputmode="numeric" autocomplete="off" placeholder="6 位" maxlength="6"></label>
+        </div>
+        <button type="submit" class="primary" id="connect-btn">连接</button>
+        <p id="connect-error" class="error" role="alert"></p>
+      </form>
+    </aside>
+    <main>
+      <header class="top">
+        <div>
+          <p class="eyebrow" id="session-os">未连接</p>
+          <h2 id="session-name">选择一台手机</h2>
+        </div>
+        <button type="button" id="disconnect" class="ghost" hidden>断开</button>
+      </header>
+      <nav class="tabs" id="tabs" hidden>
+        <button type="button" data-tab="files" class="active">文件</button>
+        <button type="button" data-tab="screen">投屏与控制</button>
+        <button type="button" data-tab="clip">剪贴板</button>
+      </nav>
+      <section id="panel-files" class="panel" hidden>
+        <div class="toolbar">
+          <button type="button" id="up">上一级</button>
+          <p id="crumb" class="crumb">/</p>
+          <label class="file-btn">上传<input id="upload" type="file" hidden></label>
+          <button type="button" id="mkdir">新建文件夹</button>
+          <button type="button" id="refresh">刷新</button>
+        </div>
+        <p id="files-error" class="error"></p>
+        <div id="files" class="files"></div>
+      </section>
+      <section id="panel-screen" class="panel" hidden>
+        <div class="toolbar">
+          <button type="button" id="screen-start" class="primary">开始投屏</button>
+          <button type="button" id="screen-stop">停止</button>
+          <button type="button" data-key="back">返回</button>
+          <button type="button" data-key="home">主页</button>
+          <button type="button" data-key="recents">最近任务</button>
+        </div>
+        <p id="screen-hint" class="muted">安卓需要先在手机上允许投屏，并打开「远程控制」。点画面是点击，拖动是滑动。</p>
+        <p id="screen-error" class="error"></p>
+        <div id="stage" class="stage" tabindex="0">
+          <img id="mirror" alt="手机画面">
+        </div>
+        <form id="text-form" class="text-form">
+          <input id="remote-text" placeholder="发到手机当前输入框" autocomplete="off">
+          <button type="submit">发送文字</button>
+        </form>
+      </section>
+      <section id="panel-clip" class="panel" hidden>
+        <div class="toolbar">
+          <button type="button" id="clip-get">读取手机剪贴板</button>
+          <button type="button" id="clip-set" class="primary">写入手机</button>
+        </div>
+        <textarea id="clip" rows="10" placeholder="文字会在电脑和手机之间传递"></textarea>
+        <p id="clip-error" class="error"></p>
+      </section>
+      <p id="welcome" class="welcome">手机和电脑连上同一个 Wi-Fi。安卓或鸿蒙打开桥联，把配对码填到左边。</p>
+    </main>
+  </div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

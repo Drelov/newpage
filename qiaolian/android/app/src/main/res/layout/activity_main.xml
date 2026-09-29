@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.12"
+            android:text="桥联"
+            android:textColor="#2FBFB0"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/codeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:letterSpacing="0.28"
+            android:text="------"
+            android:textColor="#E8EEF8"
+            android:textSize="48sp" />
+
+        <TextView
+            android:id="@+id/ipText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textColor="#93A0B5"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:lineSpacingExtra="4dp"
+            android:textColor="#E8EEF8"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/readyButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="一键连接" />
+
+        <Button
+            android:id="@+id/newCodeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="换一个配对码" />
+
+        <Button
+            android:id="@+id/clearPairButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="取消所有配对" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="点一次「一键连接」。如果系统弹出录屏确认，点「立即开始」。第一次使用时，若跳到无障碍或文件权限页面，打开桥联对应的开关后返回，会自动继续。电脑打开桥联窗口，填上面的配对码即可。"
+            android:textColor="#93A0B5"
+            android:textSize="14sp" />
+    </LinearLayout>
+</ScrollView>
