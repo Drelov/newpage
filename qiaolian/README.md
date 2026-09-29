@@ -23,9 +23,16 @@ sh scripts/build-windows.sh
 
 第一次运行如果 Windows 防火墙询问，允许专用网络，这样电脑才能收到手机的发现广播。发现不到手机时，在左边填手机页面上显示的 IP，端口保持 `37622`。
 
+## 直接安装
+
+编好的文件是 `qiaolian.exe` 和 `qiaolian.apk`。把它们复制到 `D:\PersonalFiles\app`。
+
+- 电脑双击 `qiaolian.exe`，浏览器打开 `http://127.0.0.1:8787`。
+- 安卓把 `qiaolian.apk` 拷到手机里安装。系统如果拦截，允许安装未知应用。
+
 ## 安卓
 
-用 Android Studio 打开 `android` 目录，装到手机上。打开桥联后：
+用 Android Studio 打开 `android` 目录，也可以自己重新编译。打开桥联后：
 
 1. 点「允许访问全部文件」，否则只能看到应用自己的目录。
 2. 要投屏时点「允许投屏」，并在系统弹窗里同意。

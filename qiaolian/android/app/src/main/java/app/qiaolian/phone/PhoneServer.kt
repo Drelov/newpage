@@ -106,6 +106,7 @@ class PhoneServer(
                 output.writeFrame(type, json, bin)
             }
         }
+        val sender: (Byte, String?, ByteArray?) -> Unit = { type, json, bin -> send(type, json, bin) }
         send(Qlp.HELLO, helloJson())
         host.clientChanged(true)
         var authed = false
@@ -140,10 +141,10 @@ class PhoneServer(
                     send(Qlp.PAIR_RESULT, result.toString())
                 }
                 Qlp.LIST -> send(Qlp.LIST_RESULT, listJson(body.optString("path")))
-                Qlp.PULL -> sendFile(send, body.optString("path"), body.optString("id"))
+                Qlp.PULL -> sendFile(sender, body.optString("path"), body.optString("id"))
                 Qlp.PUSH_BEGIN -> {
                     push?.abort()
-                    push = beginPush(send, body)
+                    push = beginPush(sender, body)
                 }
                 Qlp.CHUNK_FRAME -> {
                     val current = push
@@ -165,8 +166,8 @@ class PhoneServer(
                         send(Qlp.TRANSFER, JSONObject().put("id", id).put("ok", false).put("error", errText(e)).toString())
                     }
                 }
-                Qlp.MKDIR -> simpleOp(send, "mkdir", body.optString("path")) { filesOf().mkdir(it) }
-                Qlp.DELETE -> simpleOp(send, "delete", body.optString("path")) { filesOf().delete(it) }
+                Qlp.MKDIR -> simpleOp(sender, "mkdir", body.optString("path")) { filesOf().mkdir(it) }
+                Qlp.DELETE -> simpleOp(sender, "delete", body.optString("path")) { filesOf().delete(it) }
                 Qlp.RENAME -> {
                     val from = body.optString("path")
                     val to = body.optString("to")
