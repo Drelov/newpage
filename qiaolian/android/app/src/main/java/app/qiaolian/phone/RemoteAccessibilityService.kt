@@ -3,11 +3,11 @@ package app.qiaolian.phone
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 class RemoteAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
@@ -25,8 +25,7 @@ class RemoteAccessibilityService : AccessibilityService() {
 
     fun perform(body: JSONObject): String? {
         val action = body.optString("action")
-        val width = resources.displayMetrics.widthPixels.toFloat().coerceAtLeast(1f)
-        val height = resources.displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
+        val (width, height) = screenSize()
         return when (action) {
             "tap" -> gesture(
                 (body.optDouble("x") * width).toFloat(),
@@ -40,13 +39,13 @@ class RemoteAccessibilityService : AccessibilityService() {
                 (body.optDouble("y") * height).toFloat(),
                 (body.optDouble("x2", body.optDouble("x")) * width).toFloat(),
                 (body.optDouble("y2", body.optDouble("y")) * height).toFloat(),
-                body.optLong("duration", 280).coerceIn(40, 2000),
+                body.optLong("duration", 120).coerceIn(40, 400),
             )
             "scroll" -> {
                 val x = (body.optDouble("x", 0.5) * width).toFloat()
                 val y = (body.optDouble("y", 0.5) * height).toFloat()
                 val dy = (body.optDouble("dy", 0.2) * height).toFloat()
-                gesture(x, y, x, (y + dy).coerceIn(0f, height - 1f), 220)
+                gesture(x, y, x, (y + dy).coerceIn(0f, height - 1f), 90)
             }
             "key" -> key(body.optString("key"))
             "text" -> setText(body.optString("text"))
@@ -54,29 +53,32 @@ class RemoteAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun screenSize(): Pair<Float, Float> {
+        val wm = getSystemService(WindowManager::class.java)
+        val (w, h) = if (Build.VERSION.SDK_INT >= 30) {
+            val bounds = wm.currentWindowMetrics.bounds
+            bounds.width() to bounds.height()
+        } else {
+            @Suppress("DEPRECATION")
+            val point = android.graphics.Point()
+            @Suppress("DEPRECATION")
+            wm.defaultDisplay.getRealSize(point)
+            point.x to point.y
+        }
+        return w.toFloat().coerceAtLeast(1f) to h.toFloat().coerceAtLeast(1f)
+    }
+
     private fun gesture(x1: Float, y1: Float, x2: Float, y2: Float, duration: Long): String? {
-        val maxX = resources.displayMetrics.widthPixels - 1f
-        val maxY = resources.displayMetrics.heightPixels - 1f
+        val (width, height) = screenSize()
+        val maxX = width - 1f
+        val maxY = height - 1f
         val path = Path()
         path.moveTo(x1.coerceIn(0f, maxX), y1.coerceIn(0f, maxY))
         path.lineTo(x2.coerceIn(0f, maxX), y2.coerceIn(0f, maxY))
         val stroke = GestureDescription.StrokeDescription(path, 0, duration.coerceAtLeast(1))
         val gesture = GestureDescription.Builder().addStroke(stroke).build()
-        val latch = CountDownLatch(1)
-        var ok = false
-        val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
-            override fun onCompleted(gestureDescription: GestureDescription?) {
-                ok = true
-                latch.countDown()
-            }
-
-            override fun onCancelled(gestureDescription: GestureDescription?) {
-                latch.countDown()
-            }
-        }, null)
-        if (!dispatched) return "手势被系统拒绝"
-        latch.await(2, TimeUnit.SECONDS)
-        return if (ok) null else "手势未完成"
+        val dispatched = dispatchGesture(gesture, null, null)
+        return if (dispatched) null else "手势被系统拒绝"
     }
 
     private fun key(name: String): String? {

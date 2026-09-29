@@ -13,21 +13,27 @@ import (
 	"qiaolian/internal/pc"
 )
 
-func main() {
-	addr := flag.String("addr", "127.0.0.1:8787", "本机页面地址")
-	noBrowser := flag.Bool("no-browser", false, "不自动打开浏览器")
-	nameFlag := flag.String("name", "", "电脑名称，默认用主机名")
-	flag.Parse()
+var (
+	addrFlag  = flag.String("addr", "127.0.0.1:8787", "浏览器界面地址，仅在 -web 时使用")
+	webFlag   = flag.Bool("web", false, "使用浏览器界面。Windows 上默认打开桌面窗口")
+	nameFlag  = flag.String("name", "", "电脑名称，默认用主机名")
+	noBrowser = flag.Bool("no-browser", false, "使用浏览器界面时不自动打开")
+)
 
-	name := *nameFlag
-	if name == "" {
-		name, _ = os.Hostname()
+func pcName() string {
+	if *nameFlag != "" {
+		return *nameFlag
 	}
-	app := pc.New(name)
+	name, _ := os.Hostname()
+	return name
+}
+
+func runWeb() {
+	app := pc.New(pcName())
 	if err := app.StartDiscovery(); err != nil {
 		log.Printf("局域网发现暂不可用（仍可用 IP 手动连接）：%v", err)
 	}
-	url := "http://" + *addr + "/"
+	url := "http://" + *addrFlag + "/"
 	if !*noBrowser {
 		go func() {
 			time.Sleep(400 * time.Millisecond)
@@ -35,8 +41,7 @@ func main() {
 		}()
 	}
 	fmt.Println("桥联已启动：" + url)
-	fmt.Println("手机和电脑连接同一个 Wi-Fi，在手机上打开桥联。")
-	log.Fatal(http.ListenAndServe(*addr, app.Handler()))
+	log.Fatal(http.ListenAndServe(*addrFlag, app.Handler()))
 }
 
 func openBrowser(url string) {

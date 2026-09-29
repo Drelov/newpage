@@ -300,7 +300,9 @@ function contentRect(img) {
 }
 
 const stage = $("stage");
+stage.addEventListener("dragstart", (ev) => ev.preventDefault());
 stage.addEventListener("pointerdown", (ev) => {
+  ev.preventDefault();
   const box = contentRect($("mirror"));
   drag = { x: ev.clientX, y: ev.clientY, box };
   stage.setPointerCapture(ev.pointerId);

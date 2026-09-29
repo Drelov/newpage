@@ -49,32 +49,18 @@
             android:textSize="16sp" />
 
         <Button
-            android:id="@+id/newCodeButton"
+            android:id="@+id/readyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
+            android:text="一键连接" />
+
+        <Button
+            android:id="@+id/newCodeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="换一个配对码" />
-
-        <Button
-            android:id="@+id/storageButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="允许访问全部文件" />
-
-        <Button
-            android:id="@+id/projectionButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="允许投屏" />
-
-        <Button
-            android:id="@+id/accessibilityButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="打开远程控制" />
 
         <Button
             android:id="@+id/clearPairButton"
@@ -87,7 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="电脑打开桥联，输入上面的配对码。投屏前先点「允许投屏」。远程点击需要「打开远程控制」，并在系统里启用桥联。"
+            android:text="点一次「一键连接」。如果系统弹出录屏确认，点「立即开始」。第一次使用时，若跳到无障碍或文件权限页面，打开桥联对应的开关后返回，会自动继续。电脑打开桥联窗口，填上面的配对码即可。"
             android:textColor="#93A0B5"
             android:textSize="14sp" />
     </LinearLayout>

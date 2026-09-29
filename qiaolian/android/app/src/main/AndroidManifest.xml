@@ -35,7 +35,13 @@
         <service
             android:name=".LinkService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|mediaProjection" />
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".CaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:process=":capture" />
 
         <service
             android:name=".RemoteAccessibilityService"

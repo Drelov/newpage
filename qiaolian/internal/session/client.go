@@ -524,6 +524,15 @@ func (c *Client) op(typ byte, req qlp.PathRequest) error {
 	return nil
 }
 
+func (c *Client) Ping() (time.Duration, error) {
+	start := time.Now()
+	_, err := c.roundTrip(qlp.TypePing, nil, nil, qlp.TypePong, 3*time.Second)
+	if err != nil {
+		return 0, err
+	}
+	return time.Since(start), nil
+}
+
 func (c *Client) StartScreen(cfg qlp.ScreenStart) (qlp.ScreenStatus, error) {
 	c.frameMu.Lock()
 	c.screenErr = ""

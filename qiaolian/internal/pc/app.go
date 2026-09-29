@@ -296,6 +296,21 @@ func (a *App) current() *session.Client {
 	return a.client
 }
 
+// Client is the active phone connection.
+func (a *App) Client() *session.Client { return a.current() }
+
+// Devices returns phones seen on the LAN in the last few seconds.
+func (a *App) Devices() []discover.Device {
+	devices := a.seen.List(time.Now(), 8*time.Second)
+	sort.Slice(devices, func(i, j int) bool {
+		if devices[i].Name == devices[j].Name {
+			return devices[i].IP < devices[j].IP
+		}
+		return devices[i].Name < devices[j].Name
+	})
+	return devices
+}
+
 func (a *App) sessionView() any {
 	a.mu.Lock()
 	client := a.client

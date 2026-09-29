@@ -37,7 +37,6 @@ class LinkService : Service(), PhoneServer.Host {
     }
     private lateinit var server: PhoneServer
     private lateinit var discovery: Discovery
-    private lateinit var grabber: ScreenGrabber
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
     private var storageLabel = "应用目录"
@@ -50,7 +49,8 @@ class LinkService : Service(), PhoneServer.Host {
         acquireLocks()
         currentFiles()
         server = PhoneServer(::currentFiles, this)
-        grabber = ScreenGrabber(this) { jpeg, w, h -> server.sendFrame(jpeg, w, h) }
+        FrameHub.attach(server)
+        FrameHub.listen()
         server.start()
         discovery = Discovery { Discovery.beacon(helloName(), deviceId()) }
         discovery.start()
@@ -58,42 +58,18 @@ class LinkService : Service(), PhoneServer.Host {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_PROJECTION) {
-            val code = intent.getIntExtra(EXTRA_CODE, 0)
-            val data = if (Build.VERSION.SDK_INT >= 33) {
-                intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra(EXTRA_DATA)
-            }
-            if (data != null) {
-                val err = grabber.attach(code, data)
-                Bridge.setStatus(err ?: "已允许投屏，可以在电脑上开始")
-            }
-        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         if (::server.isInitialized) server.shutdown()
         if (::discovery.isInitialized) discovery.shutdown()
-        if (::grabber.isInitialized) grabber.release()
         wakeLock?.release()
         wifiLock?.release()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    fun promoteProjectionForeground() {
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(
-                NOTIF_ID,
-                buildNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION,
-            )
-        }
-    }
 
     private fun startAsDataSync() {
         if (Build.VERSION.SDK_INT >= 29) {
@@ -174,10 +150,16 @@ class LinkService : Service(), PhoneServer.Host {
         Bridge.setStatus("电脑已配对")
     }
 
-    override fun startScreen(maxWidth: Int, quality: Int, fps: Int): String? = grabber.start(maxWidth, quality, fps)
+    override fun startScreen(maxWidth: Int, quality: Int, fps: Int): String? {
+        if (!FrameHub.ready) {
+            return FrameHub.lastError ?: "请打开手机上的桥联，在系统录屏提示里点「立即开始」"
+        }
+        FrameHub.configure(maxWidth, quality, fps, true)
+        return null
+    }
 
     override fun stopScreen() {
-        grabber.stopMirror()
+        FrameHub.configure(720, 40, 24, false)
     }
 
     override fun onInput(body: JSONObject): String? {
@@ -191,7 +173,7 @@ class LinkService : Service(), PhoneServer.Host {
             }
             return null
         }
-        val control = RemoteAccessibilityService.instance ?: return "请在手机上打开「远程控制」"
+        val control = RemoteAccessibilityService.instance ?: return "请在手机的无障碍设置里打开桥联"
         return control.perform(body)
     }
 
