@@ -60,6 +60,7 @@ type desk struct {
 	deviceItems []discover.Device
 	lastGap     time.Duration
 	lastRTT     time.Duration
+	lastLatency time.Time
 	files       *stringList
 	fileBox     *walk.ListBox
 	entries     []qlp.Entry
@@ -178,12 +179,14 @@ func (d *desk) screenPage() TabPage {
 				},
 			},
 			CustomWidget{
-				AssignTo:         &d.screen,
-				StretchFactor:    1,
-				ClearsBackground: true,
-				Paint:            d.paint,
-				OnMouseDown:      d.mouseDown,
-				OnMouseUp:        d.mouseUp,
+				AssignTo:            &d.screen,
+				StretchFactor:       1,
+				ClearsBackground:    false,
+				InvalidatesOnResize: true,
+				PaintMode:           PaintBuffered,
+				PaintPixels:         d.paint,
+				OnMouseDown:         d.mouseDown,
+				OnMouseUp:           d.mouseUp,
 			},
 			Composite{
 				Layout: HBox{MarginsZero: true},
@@ -435,14 +438,18 @@ func (d *desk) showLatency() {
 	if d.latency == nil {
 		return
 	}
+	if time.Since(d.lastLatency) < 500*time.Millisecond {
+		return
+	}
+	d.lastLatency = time.Now()
 	_ = d.latency.SetText("往返 " + strconv.Itoa(int(d.lastRTT.Milliseconds())) + " ms · 画面间隔 " + strconv.Itoa(int(d.lastGap.Milliseconds())) + " ms")
 }
 
 func (d *desk) paint(canvas *walk.Canvas, _ walk.Rectangle) error {
-	size := d.screen.Size()
-	bounds := walk.Rectangle{Width: size.Width, Height: size.Height}
+	cb := d.screen.ClientBoundsPixels()
+	bounds := walk.Rectangle{Width: cb.Width, Height: cb.Height}
 	_ = canvas.FillRectangle(d.brush, bounds)
-	if d.bmp == nil {
+	if d.bmp == nil || bounds.Width < 2 || bounds.Height < 2 {
 		d.imgRect = walk.Rectangle{}
 		return nil
 	}
@@ -487,12 +494,9 @@ func (d *desk) mouseUp(x, y int, _ walk.MouseButton) {
 		return
 	}
 	d.pressed = false
-	nx, ny, ok := d.normalize(x, y)
-	if !ok {
-		nx, ny = d.downNorm.x, d.downNorm.y
-	}
+	nx, ny := d.clampNorm(x, y)
 	moved := abs(x-d.downX) + abs(y-d.downY)
-	if moved < 8 {
+	if moved < 12 {
 		d.input(qlp.Input{Action: "tap", X: d.downNorm.x, Y: d.downNorm.y})
 		return
 	}
@@ -502,7 +506,7 @@ func (d *desk) mouseUp(x, y int, _ walk.MouseButton) {
 		Y:        d.downNorm.y,
 		X2:       nx,
 		Y2:       ny,
-		Duration: 120,
+		Duration: 280,
 	})
 }
 
@@ -515,6 +519,26 @@ func (d *desk) normalize(x, y int) (float64, float64, bool) {
 		return 0, 0, false
 	}
 	return float64(x-r.X) / float64(r.Width-1), float64(y-r.Y) / float64(r.Height-1), true
+}
+
+func (d *desk) clampNorm(x, y int) (float64, float64) {
+	r := d.imgRect
+	if r.Width <= 1 || r.Height <= 1 {
+		return d.downNorm.x, d.downNorm.y
+	}
+	if x < r.X {
+		x = r.X
+	}
+	if y < r.Y {
+		y = r.Y
+	}
+	if x >= r.X+r.Width {
+		x = r.X + r.Width - 1
+	}
+	if y >= r.Y+r.Height {
+		y = r.Y + r.Height - 1
+	}
+	return float64(x-r.X) / float64(r.Width-1), float64(y-r.Y) / float64(r.Height-1)
 }
 
 func (d *desk) scroll(dy float64) {

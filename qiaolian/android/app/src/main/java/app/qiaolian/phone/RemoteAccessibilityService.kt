@@ -39,7 +39,7 @@ class RemoteAccessibilityService : AccessibilityService() {
                 (body.optDouble("y") * height).toFloat(),
                 (body.optDouble("x2", body.optDouble("x")) * width).toFloat(),
                 (body.optDouble("y2", body.optDouble("y")) * height).toFloat(),
-                body.optLong("duration", 120).coerceIn(40, 400),
+                body.optLong("duration", 280).coerceIn(160, 500),
             )
             "scroll" -> {
                 val x = (body.optDouble("x", 0.5) * width).toFloat()
