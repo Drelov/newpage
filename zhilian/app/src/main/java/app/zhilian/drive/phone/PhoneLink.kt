@@ -87,10 +87,7 @@ class PhoneLink {
 
     fun connectWifi(car: FoundCar, pin: String, token: String) {
         prepare(pin, token)
-        if (usbWriter != null) {
-            sendUsbHello(pin, token)
-            return
-        }
+        if (usbWriter != null) return
         Thread {
             var last = "连接失败"
             for (host in car.hosts.ifEmpty { listOf(car.host) }) {
@@ -112,33 +109,31 @@ class PhoneLink {
         }.start()
     }
 
-    fun attachUsb(pfd: ParcelFileDescriptor, savedToken: String) {
+    fun attachUsb(pfd: ParcelFileDescriptor) {
+        if (usbWriter != null) return
         usbPfd = pfd
         usbWriter = PacketWriter(FileOutputStream(pfd.fileDescriptor))
         usbReader = PacketReader(FileInputStream(pfd.fileDescriptor))
-        if (savedToken.isNotEmpty()) sendUsbHello("", savedToken)
-    }
-
-    private fun sendUsbHello(pin: String, token: String) {
-        val writer = usbWriter ?: return
-        val reader = usbReader ?: return
-        val pfd = usbPfd ?: return
-        prepare(pin, token)
         Thread {
+            val writer = usbWriter ?: return@Thread
+            val reader = usbReader ?: return@Thread
             try {
-                writer.send(Packet.HELLO, helloBytes(pin, token))
-                val first = reader.recv()
-                if (first.type == Packet.REJECT) {
-                    onClosed?.invoke(JSONObject(String(first.payload, Charsets.UTF_8)).optString("reason", "连接码不一致"))
+                while (true) {
+                    val msg = reader.recv()
+                    if (msg.type == Packet.PING) {
+                        writer.send(Packet.HELLO, helloBytes("", "", true))
+                        continue
+                    }
+                    if (msg.type == Packet.REJECT) {
+                        onClosed?.invoke(JSONObject(String(msg.payload, Charsets.UTF_8)).optString("reason", "连接被拒绝"))
+                        return@Thread
+                    }
+                    if (msg.type != Packet.WELCOME) continue
+                    val welcome = JSONObject(String(msg.payload, Charsets.UTF_8))
+                    onReady?.invoke(welcome.getString("token"), welcome.optString("carId"), pfd.dup())
+                    readTouches(reader)
                     return@Thread
                 }
-                if (first.type != Packet.WELCOME) {
-                    onClosed?.invoke("车机没有应答")
-                    return@Thread
-                }
-                val welcome = JSONObject(String(first.payload, Charsets.UTF_8))
-                onReady?.invoke(welcome.getString("token"), welcome.optString("carId"), pfd.dup())
-                readTouches(reader)
             } catch (e: Exception) {
                 onClosed?.invoke(e.message ?: "USB 断开")
             }
@@ -219,12 +214,13 @@ class PhoneLink {
         }
     }
 
-    private fun helloBytes(pin: String, token: String): ByteArray {
+    private fun helloBytes(pin: String, token: String, usb: Boolean = false): ByteArray {
         return JSONObject()
             .put("deviceId", deviceId)
             .put("name", phoneName)
             .put("pin", pin)
             .put("token", token)
+            .put("usb", usb)
             .toString()
             .toByteArray()
     }

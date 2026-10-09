@@ -230,7 +230,9 @@ class CarHost(
         val givenToken = json.optString("token")
         val known = vault.tokenFor(phoneId)
         val trusted = known != null && known == givenToken && givenToken.isNotEmpty()
-        if (!trusted && givenPin != pin) {
+        if (json.optBoolean("usb")) {
+            ui.showStatus("数据线已连接，等待手机允许录屏")
+        } else if (!trusted && givenPin != pin) {
             val reason = JSONObject().put("reason", "连接码不一致").toString().toByteArray()
             out.send(Packet.REJECT, reason)
             ui.showStatus("连接码不一致，请看屏幕上的 6 位数再输入")
@@ -470,10 +472,11 @@ class CarHost(
             return
         }
         usbConnection = conn
-        ui.showStatus("USB 已连接。请在手机输入连接码并点连接")
+        ui.showStatus("数据线已连接，等待手机允许录屏")
         val reader = PacketReader(BulkInput(conn, inputEp))
         val out = PacketWriter(BulkOutput(conn, outputEp))
         try {
+            out.send(Packet.PING, ByteArray(0))
             val hello = reader.recv()
             if (hello.type != Packet.HELLO) return
             if (!acceptHello(JSONObject(String(hello.payload, Charsets.UTF_8)), out)) return

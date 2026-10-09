@@ -41,6 +41,7 @@ class PhoneActivity : Activity() {
     private val link = PhoneLink()
     private val cars = HashMap<String, PhoneLink.FoundCar>()
     private var linking = false
+    private var usbAttached = false
     private var projecting = false
     private var pendingHost: String? = null
     private var pendingPort = Packet.VIDEO_PORT
@@ -113,13 +114,14 @@ class PhoneActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (linking) return
+        if (linking || usbAttached) return
         val usb = getSystemService(UsbManager::class.java) ?: return
         val accessory = usb.accessoryList?.firstOrNull() ?: return
         val fd = usb.openAccessory(accessory) ?: return
-        linking = false
-        status.text = "USB 已连接。输入车机上的连接码，再点连接。"
-        link.attachUsb(fd, vault.savedCar()?.token ?: "")
+        if (usbAttached) return
+        usbAttached = true
+        status.text = "数据线已连接，请允许接下来的录屏"
+        link.attachUsb(fd)
     }
 
     override fun onDestroy() {
@@ -213,10 +215,10 @@ class PhoneActivity : Activity() {
         } ?: return
         val usb = getSystemService(UsbManager::class.java)
         val fd = usb.openAccessory(accessory) ?: return
-        val saved = vault.savedCar()
-        linking = false
-        status.text = "USB 已连接。输入车机上的连接码，再点连接。"
-        link.attachUsb(fd, saved?.token ?: "")
+        if (usbAttached) return
+        usbAttached = true
+        status.text = "数据线已连接，请允许接下来的录屏"
+        link.attachUsb(fd)
     }
 
     private fun beginProjection(host: String?, port: Int, token: String, usb: ParcelFileDescriptor?) {
