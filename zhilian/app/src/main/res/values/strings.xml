@@ -16,5 +16,5 @@
     <string name="host_hint">车机 IP，可留空</string>
     <string name="connect">连接</string>
     <string name="projecting">正在把画面送到车机</string>
-    <string name="need_access">请先打开直联的无障碍服务，用来在手机上执行车机触控</string>
+    <string name="need_access">画面可以不打开无障碍。要在车机上点按控制手机时，再打开直联的无障碍服务。</string>
 </resources>

@@ -23,7 +23,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.ParcelUuid
 import android.os.ParcelFileDescriptor
-import android.provider.Settings
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
@@ -42,6 +41,7 @@ class PhoneActivity : Activity() {
     private val link = PhoneLink()
     private val cars = HashMap<String, PhoneLink.FoundCar>()
     private var linking = false
+    private var projecting = false
     private var pendingHost: String? = null
     private var pendingPort = Packet.VIDEO_PORT
     private var pendingToken: String? = null
@@ -74,7 +74,27 @@ class PhoneActivity : Activity() {
             it.setReferenceCounted(false)
             it.acquire()
         }
-        link.startBeacon { car -> onFound(car) }
+        link.startSession(
+            vault.deviceId,
+            android.os.Build.MODEL ?: "手机",
+            onReady = { issued, carId, pipe ->
+                vault.saveCar(carId, issued, cars.values.firstOrNull()?.host ?: "usb")
+                runOnUiThread {
+                    if (projecting) return@runOnUiThread
+                    projecting = true
+                    status.text = getString(R.string.projecting)
+                    beginProjection(null, Packet.VIDEO_PORT, issued, pipe)
+                }
+            },
+            onTouch = { action, x, y -> RemoteAccessibilityService.instance?.touch(action, x, y) },
+            onClosed = { reason ->
+                linking = false
+                runOnUiThread {
+                    if (!projecting) status.text = friendly(reason)
+                }
+            },
+            onCar = { car -> onFound(car) },
+        )
         startDirect()
         startBle()
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
@@ -114,7 +134,6 @@ class PhoneActivity : Activity() {
     }
 
     private fun manualConnect() {
-        if (!readyForLink()) return
         val typed = hostField.text?.toString()?.trim().orEmpty()
         val known = cars.values.firstOrNull()
         val target = when {
@@ -133,30 +152,20 @@ class PhoneActivity : Activity() {
         val saved = vault.savedCar()
         val token = if (saved != null && (saved.carId == target.id || typed.isNotEmpty())) saved.token else ""
         linking = true
-        status.text = "正在连接"
-        connect(target, pin.text?.toString()?.trim().orEmpty(), token)
+        projecting = false
+        status.text = "正在连接。模拟器会改由车机来连手机。"
+        link.connectWifi(target, pin.text?.toString()?.trim().orEmpty(), token)
     }
 
     private fun connect(car: PhoneLink.FoundCar, code: String, token: String) {
-        link.connectWifi(
-            car,
-            vault.deviceId,
-            android.os.Build.MODEL ?: "手机",
-            code,
-            token,
-            onReady = { issued, carId ->
-                vault.saveCar(carId, issued, car.host)
-                runOnUiThread {
-                    status.text = getString(R.string.projecting)
-                    beginProjection(car.host, Packet.VIDEO_PORT, issued, null)
-                }
-            },
-            onTouch = { action, x, y -> RemoteAccessibilityService.instance?.touch(action, x, y) },
-            onClosed = { reason ->
-                linking = false
-                runOnUiThread { status.text = reason }
-            },
-        )
+        link.connectWifi(car, code, token)
+    }
+
+    private fun friendly(reason: String): String {
+        if (reason.contains("ECONNREFUSED") || reason.contains("Connection refused")) {
+            return "手机连不进模拟器。请把模拟器里的直联也换成新版本，再点一次连接。"
+        }
+        return reason
     }
 
     private fun openAccessory(intent: Intent) {
@@ -168,47 +177,17 @@ class PhoneActivity : Activity() {
         } ?: return
         val usb = getSystemService(UsbManager::class.java)
         val fd = usb.openAccessory(accessory) ?: return
-        if (!readyForLink()) return
         val saved = vault.savedCar()
         linking = true
         status.text = "USB 已连接"
         link.connectUsb(
             fd,
-            vault.deviceId,
-            android.os.Build.MODEL ?: "手机",
             pin.text?.toString()?.trim().orEmpty(),
             saved?.token ?: "",
-            onReady = { issued, carId, dup ->
-                vault.saveCar(carId, issued, "usb")
-                runOnUiThread {
-                    status.text = getString(R.string.projecting)
-                    beginProjection(null, Packet.VIDEO_PORT, issued, dup)
-                }
-            },
-            onTouch = { action, x, y -> RemoteAccessibilityService.instance?.touch(action, x, y) },
-            onClosed = { reason ->
-                linking = false
-                runOnUiThread { status.text = reason }
-            },
         )
     }
 
-    private fun readyForLink(): Boolean {
-        if (RemoteAccessibilityService.instance == null) {
-            status.text = getString(R.string.need_access)
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            return false
-        }
-        return true
-    }
-
     private fun beginProjection(host: String?, port: Int, token: String, usb: ParcelFileDescriptor?) {
-        if (RemoteAccessibilityService.instance == null) {
-            linking = false
-            status.text = getString(R.string.need_access)
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            return
-        }
         pendingHost = host
         pendingPort = port
         pendingToken = token
@@ -227,6 +206,7 @@ class PhoneActivity : Activity() {
         if (resultCode != RESULT_OK || data == null || token == null) {
             status.text = "没有允许录屏"
             linking = false
+            projecting = false
             return
         }
         CaptureService.start(this, resultCode, data, pendingHost, pendingPort, token, pendingUsb)

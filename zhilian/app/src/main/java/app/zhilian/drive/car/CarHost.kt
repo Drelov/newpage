@@ -74,6 +74,7 @@ class CarHost(
         thread(name = "zl-control") { controlLoop() }
         thread(name = "zl-video") { videoLoop() }
         thread(name = "zl-beacon") { beaconLoop() }
+        thread(name = "zl-phone-beacon") { phoneBeaconLoop() }
         thread(name = "zl-usb") { usbLoop() }
         startDirect()
         startBle()
@@ -151,8 +152,11 @@ class CarHost(
             writer = out
             while (running.get()) {
                 val msg = reader.recv()
-                if (msg.type == Packet.PING) out?.send(Packet.PONG, ByteArray(0))
-                if (msg.type == Packet.BYE) break
+                when (msg.type) {
+                    Packet.PING -> out?.send(Packet.PONG, ByteArray(0))
+                    Packet.VIDEO -> feed(msg.payload)
+                    Packet.BYE -> break
+                }
             }
         } catch (e: Exception) {
             Log.i(TAG, "control ended ${e.message}")
@@ -254,7 +258,7 @@ class CarHost(
         val socket = DatagramSocket()
         socket.broadcast = true
         beacon = socket
-        val body = JSONObject().put("id", carId).put("name", "直联").put("port", Packet.CONTROL_PORT)
+        val body = JSONObject().put("role", "car").put("id", carId).put("name", "直联").put("port", Packet.CONTROL_PORT)
         while (running.get()) {
             body.put("pinReady", true)
             val bytes = body.toString().toByteArray()
@@ -269,6 +273,60 @@ class CarHost(
                 Thread.sleep(1000)
             } catch (_: InterruptedException) {
                 break
+            }
+        }
+    }
+
+    private fun phoneBeaconLoop() {
+        val socket = DatagramSocket(null)
+        socket.reuseAddress = true
+        socket.soTimeout = 1000
+        try {
+            socket.bind(InetSocketAddress(Packet.BEACON_PORT))
+        } catch (e: Exception) {
+            Log.e(TAG, "phone beacon bind", e)
+            return
+        }
+        val buf = ByteArray(1024)
+        while (running.get()) {
+            val packet = DatagramPacket(buf, buf.size)
+            try {
+                socket.receive(packet)
+            } catch (_: Exception) {
+                continue
+            }
+            if (packet.length < 5) continue
+            if (buf[0] != 'Z'.code.toByte() || buf[3] != '1'.code.toByte()) continue
+            try {
+                val json = JSONObject(String(buf, 4, packet.length - 4, Charsets.UTF_8))
+                if (json.optString("role") != "phone") continue
+                val host = packet.address?.hostAddress ?: continue
+                dial(host, json.optInt("port", Packet.CONTROL_PORT))
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private var lastDial = 0L
+
+    private fun dial(host: String, port: Int) {
+        if (writer != null) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastDial < 3000) return
+        lastDial = now
+        thread(name = "zl-dial") {
+            val socket = Socket()
+            try {
+                socket.tcpNoDelay = true
+                socket.connect(InetSocketAddress(host, port), 4000)
+                ui.showStatus("正在连接手机")
+                serveControl(socket)
+            } catch (e: Exception) {
+                Log.i(TAG, "dial $host ${e.message}")
+                try {
+                    socket.close()
+                } catch (_: Exception) {
+                }
             }
         }
     }
