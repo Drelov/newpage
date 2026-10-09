@@ -161,15 +161,26 @@ class CarActivity : Activity(), CarHost.CarUi {
             while (interfaces.hasMoreElements()) {
                 val nif = interfaces.nextElement()
                 if (!nif.isUp || nif.isLoopback) continue
+                val name = nif.name.lowercase()
+                if (name.startsWith("dummy") || name.contains("rmnet") || name.startsWith("tun") || name.contains("p2p")) {
+                    continue
+                }
+                val preferred = name.startsWith("wlan") || name.startsWith("eth") || name.contains("ap") || name.contains("soft")
                 val addresses = nif.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val addr = addresses.nextElement()
-                    if (addr is java.net.Inet4Address) ips.add(addr.hostAddress ?: "")
+                    if (addr is java.net.Inet4Address) {
+                        val ip = addr.hostAddress ?: continue
+                        if (preferred) ips.add(0, ip) else ips.add(ip)
+                    }
                 }
             }
         } catch (_: Exception) {
         }
-        return if (ips.isEmpty()) "" else "车机地址 " + ips.joinToString("  ")
+        val useful = ips.filter { ip ->
+            !ip.startsWith("127.") && ip != "0.0.0.0"
+        }
+        return if (useful.isEmpty()) "" else "手机请填写：" + useful.first()
     }
 
     private fun registerUsb() {

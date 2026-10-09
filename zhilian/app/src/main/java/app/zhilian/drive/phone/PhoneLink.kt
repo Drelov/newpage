@@ -18,7 +18,13 @@ import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
 class PhoneLink {
-    data class FoundCar(val id: String, val name: String, val host: String, val port: Int)
+    data class FoundCar(
+        val id: String,
+        val name: String,
+        val host: String,
+        val port: Int,
+        val hosts: List<String> = listOf(host),
+    )
 
     private val running = AtomicBoolean(false)
     private var beacon: DatagramSocket? = null
@@ -32,6 +38,9 @@ class PhoneLink {
     private var onReady: ((String, String, ParcelFileDescriptor) -> Unit)? = null
     private var onTouch: ((Int, Int, Int) -> Unit)? = null
     private var onClosed: ((String) -> Unit)? = null
+    private var usbWriter: PacketWriter? = null
+    private var usbReader: PacketReader? = null
+    private var usbPfd: ParcelFileDescriptor? = null
 
     fun startSession(
         deviceId: String,
@@ -74,36 +83,53 @@ class PhoneLink {
         }
     }
 
+    fun hasUsb(): Boolean = usbWriter != null
+
     fun connectWifi(car: FoundCar, pin: String, token: String) {
         prepare(pin, token)
+        if (usbWriter != null) {
+            sendUsbHello(pin, token)
+            return
+        }
         Thread {
-            val socket = Socket()
-            try {
-                socket.tcpNoDelay = true
-                socket.connect(InetSocketAddress(car.host, car.port), 4000)
-                speak(socket, pin, token)
-            } catch (e: Exception) {
-                onClosed?.invoke(e.message ?: "连接失败")
+            var last = "连接失败"
+            for (host in car.hosts.ifEmpty { listOf(car.host) }) {
+                val socket = Socket()
                 try {
-                    socket.close()
-                } catch (_: Exception) {
+                    socket.tcpNoDelay = true
+                    socket.connect(InetSocketAddress(host, car.port), 2500)
+                    speak(socket, pin, token)
+                    return@Thread
+                } catch (e: Exception) {
+                    last = e.message ?: last
+                    try {
+                        socket.close()
+                    } catch (_: Exception) {
+                    }
                 }
             }
+            onClosed?.invoke(last)
         }.start()
     }
 
-    fun connectUsb(pfd: ParcelFileDescriptor, pin: String, token: String) {
+    fun attachUsb(pfd: ParcelFileDescriptor, savedToken: String) {
+        usbPfd = pfd
+        usbWriter = PacketWriter(FileOutputStream(pfd.fileDescriptor))
+        usbReader = PacketReader(FileInputStream(pfd.fileDescriptor))
+        if (savedToken.isNotEmpty()) sendUsbHello("", savedToken)
+    }
+
+    private fun sendUsbHello(pin: String, token: String) {
+        val writer = usbWriter ?: return
+        val reader = usbReader ?: return
+        val pfd = usbPfd ?: return
         prepare(pin, token)
         Thread {
             try {
-                val input = FileInputStream(pfd.fileDescriptor)
-                val output = FileOutputStream(pfd.fileDescriptor)
-                val writer = PacketWriter(output)
-                val reader = PacketReader(input)
                 writer.send(Packet.HELLO, helloBytes(pin, token))
                 val first = reader.recv()
                 if (first.type == Packet.REJECT) {
-                    onClosed?.invoke(JSONObject(String(first.payload, Charsets.UTF_8)).optString("reason", "被拒绝"))
+                    onClosed?.invoke(JSONObject(String(first.payload, Charsets.UTF_8)).optString("reason", "连接码不一致"))
                     return@Thread
                 }
                 if (first.type != Packet.WELCOME) {
@@ -227,8 +253,26 @@ class PhoneLink {
             try {
                 val json = JSONObject(String(buf, 4, packet.length - 4, Charsets.UTF_8))
                 if (json.optString("role") == "phone") continue
-                val host = packet.address?.hostAddress ?: continue
-                onCar(FoundCar(json.optString("id"), json.optString("name", "直联"), host, json.optInt("port", Packet.CONTROL_PORT)))
+                val source = packet.address?.hostAddress ?: continue
+                val listed = ArrayList<String>()
+                val arr = json.optJSONArray("ips")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val ip = arr.optString(i)
+                        if (ip.isNotBlank()) listed.add(ip)
+                    }
+                }
+                if (source.isNotBlank() && !listed.contains(source)) listed.add(0, source)
+                val host = listed.firstOrNull() ?: continue
+                onCar(
+                    FoundCar(
+                        json.optString("id"),
+                        json.optString("name", "直联"),
+                        host,
+                        json.optInt("port", Packet.CONTROL_PORT),
+                        listed,
+                    ),
+                )
             } catch (_: Exception) {
             }
         }

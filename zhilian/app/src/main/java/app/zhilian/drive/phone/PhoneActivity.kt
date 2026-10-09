@@ -117,9 +117,9 @@ class PhoneActivity : Activity() {
         val usb = getSystemService(UsbManager::class.java) ?: return
         val accessory = usb.accessoryList?.firstOrNull() ?: return
         val fd = usb.openAccessory(accessory) ?: return
-        linking = true
-        status.text = "USB 已连接"
-        link.connectUsb(fd, pin.text?.toString()?.trim().orEmpty(), vault.savedCar()?.token ?: "")
+        linking = false
+        status.text = "USB 已连接。输入车机上的连接码，再点连接。"
+        link.attachUsb(fd, vault.savedCar()?.token ?: "")
     }
 
     override fun onDestroy() {
@@ -138,7 +138,7 @@ class PhoneActivity : Activity() {
     private fun onFound(car: PhoneLink.FoundCar) {
         runOnUiThread {
             cars[car.id] = car
-            foundView.text = "已发现 ${car.name}  ${car.host}"
+            foundView.text = "车机地址 " + car.hosts.joinToString(" 或 ")
             val saved = vault.savedCar()
             if (!linking && saved != null && saved.carId == car.id) {
                 linking = true
@@ -162,6 +162,17 @@ class PhoneActivity : Activity() {
         }
         val saved = vault.savedCar()
         val token = if (saved != null && (saved.carId == target?.id || typed.isNotEmpty())) saved.token else ""
+        if (link.hasUsb()) {
+            linking = true
+            projecting = false
+            status.text = "正在通过数据线核对连接码"
+            link.connectWifi(
+                PhoneLink.FoundCar("usb", "直联", "usb", Packet.CONTROL_PORT),
+                pin.text?.toString()?.trim().orEmpty(),
+                token,
+            )
+            return
+        }
         if (target == null) {
             wantDirect = true
             directPin = pin.text?.toString()?.trim().orEmpty()
@@ -203,13 +214,9 @@ class PhoneActivity : Activity() {
         val usb = getSystemService(UsbManager::class.java)
         val fd = usb.openAccessory(accessory) ?: return
         val saved = vault.savedCar()
-        linking = true
-        status.text = "USB 已连接"
-        link.connectUsb(
-            fd,
-            pin.text?.toString()?.trim().orEmpty(),
-            saved?.token ?: "",
-        )
+        linking = false
+        status.text = "USB 已连接。输入车机上的连接码，再点连接。"
+        link.attachUsb(fd, saved?.token ?: "")
     }
 
     private fun beginProjection(host: String?, port: Int, token: String, usb: ParcelFileDescriptor?) {

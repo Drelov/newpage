@@ -233,6 +233,7 @@ class CarHost(
         if (!trusted && givenPin != pin) {
             val reason = JSONObject().put("reason", "连接码不一致").toString().toByteArray()
             out.send(Packet.REJECT, reason)
+            ui.showStatus("连接码不一致，请看屏幕上的 6 位数再输入")
             return false
         }
         val token = if (trusted) known!! else UUID.randomUUID().toString()
@@ -266,6 +267,9 @@ class CarHost(
         beacon = socket
         val body = JSONObject().put("role", "car").put("id", carId).put("name", "直联").put("port", Packet.CONTROL_PORT)
         while (running.get()) {
+            val ips = org.json.JSONArray()
+            for (ip in wifiIps()) ips.put(ip)
+            body.put("ips", ips)
             body.put("pinReady", true)
             val bytes = body.toString().toByteArray()
             val packet = ByteArray(4 + bytes.size)
@@ -335,6 +339,37 @@ class CarHost(
                 }
             }
         }
+    }
+
+    private fun wifiIps(): List<String> {
+        val preferred = ArrayList<String>()
+        val backup = ArrayList<String>()
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return emptyList()
+            while (interfaces.hasMoreElements()) {
+                val nif = interfaces.nextElement()
+                if (!nif.isUp || nif.isLoopback) continue
+                val name = nif.name.lowercase()
+                if (name.startsWith("dummy") || name.contains("rmnet") || name.startsWith("tun") || name.contains("p2p")) {
+                    continue
+                }
+                val bucket = if (
+                    name.startsWith("wlan") || name.startsWith("eth") ||
+                    name.contains("ap") || name.contains("soft")
+                ) {
+                    preferred
+                } else {
+                    backup
+                }
+                val addresses = nif.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    if (addr is java.net.Inet4Address) bucket.add(addr.hostAddress ?: continue)
+                }
+            }
+        } catch (_: Exception) {
+        }
+        return if (preferred.isNotEmpty()) preferred else backup
     }
 
     private fun sendBeacon(socket: DatagramSocket, packet: ByteArray) {
@@ -435,7 +470,7 @@ class CarHost(
             return
         }
         usbConnection = conn
-        ui.showStatus("USB 已连接")
+        ui.showStatus("USB 已连接。请在手机输入连接码并点连接")
         val reader = PacketReader(BulkInput(conn, inputEp))
         val out = PacketWriter(BulkOutput(conn, outputEp))
         try {
@@ -555,16 +590,13 @@ class CarHost(
         }
 
         override fun read(b: ByteArray, off: Int, length: Int): Int {
-            var misses = 0
             while (pos >= len) {
-                val n = conn.bulkTransfer(ep, buf, buf.size, 1500)
+                val n = conn.bulkTransfer(ep, buf, buf.size, 2000)
                 if (n > 0) {
                     pos = 0
                     len = n
                     break
                 }
-                misses += 1
-                if (misses > 20) return -1
             }
             val n = minOf(length, len - pos)
             buf.copyInto(b, off, pos, pos + n)
