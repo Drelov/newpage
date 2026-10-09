@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="#FFFFFFFF"
+        android:textSize="36sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/role_hint"
+        android:textColor="#99FFFFFF"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/carRole"
+        android:layout_width="280dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="36dp"
+        android:background="@drawable/btn_fill"
+        android:gravity="center"
+        android:text="@string/role_car"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/phoneRole"
+        android:layout_width="280dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/btn_line"
+        android:gravity="center"
+        android:text="@string/role_phone"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp" />
+</LinearLayout>
