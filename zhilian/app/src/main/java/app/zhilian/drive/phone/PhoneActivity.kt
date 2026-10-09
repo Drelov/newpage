@@ -119,9 +119,7 @@ class PhoneActivity : Activity() {
         val accessory = usb.accessoryList?.firstOrNull() ?: return
         val fd = usb.openAccessory(accessory) ?: return
         if (usbAttached) return
-        usbAttached = true
-        status.text = "数据线已连接，请允许接下来的录屏"
-        link.attachUsb(fd)
+        openUsb(fd)
     }
 
     override fun onDestroy() {
@@ -165,14 +163,11 @@ class PhoneActivity : Activity() {
         val saved = vault.savedCar()
         val token = if (saved != null && (saved.carId == target?.id || typed.isNotEmpty())) saved.token else ""
         if (link.hasUsb()) {
-            linking = true
-            projecting = false
-            status.text = "正在通过数据线核对连接码"
-            link.connectWifi(
-                PhoneLink.FoundCar("usb", "直联", "usb", Packet.CONTROL_PORT),
-                pin.text?.toString()?.trim().orEmpty(),
-                token,
-            )
+            val fd = pendingUsb
+            if (fd != null && !projecting) {
+                status.text = "请允许录屏，允许后车机就会出画面"
+                beginProjection(null, Packet.VIDEO_PORT, "usb", fd)
+            }
             return
         }
         if (target == null) {
@@ -216,9 +211,17 @@ class PhoneActivity : Activity() {
         val usb = getSystemService(UsbManager::class.java)
         val fd = usb.openAccessory(accessory) ?: return
         if (usbAttached) return
+        openUsb(fd)
+    }
+
+    private fun openUsb(fd: ParcelFileDescriptor) {
         usbAttached = true
-        status.text = "数据线已连接，请允许接下来的录屏"
+        pendingUsb = fd
+        status.text = "请允许录屏，允许后车机就会出画面"
         link.attachUsb(fd)
+        window.decorView.post {
+            if (!projecting) beginProjection(null, Packet.VIDEO_PORT, "usb", fd)
+        }
     }
 
     private fun beginProjection(host: String?, port: Int, token: String, usb: ParcelFileDescriptor?) {
@@ -243,7 +246,17 @@ class PhoneActivity : Activity() {
             projecting = false
             return
         }
-        CaptureService.start(this, resultCode, data, pendingHost, pendingPort, token, pendingUsb)
+        CaptureService.start(
+            this,
+            resultCode,
+            data,
+            pendingHost,
+            pendingPort,
+            token,
+            pendingUsb,
+            vault.deviceId,
+            android.os.Build.MODEL ?: "手机",
+        )
         status.text = getString(R.string.projecting)
     }
 

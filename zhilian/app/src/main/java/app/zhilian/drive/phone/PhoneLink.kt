@@ -110,32 +110,21 @@ class PhoneLink {
     }
 
     fun attachUsb(pfd: ParcelFileDescriptor) {
-        if (usbWriter != null) return
+        if (usbReader != null) return
         usbPfd = pfd
         usbWriter = PacketWriter(FileOutputStream(pfd.fileDescriptor))
         usbReader = PacketReader(FileInputStream(pfd.fileDescriptor))
         Thread {
-            val writer = usbWriter ?: return@Thread
             val reader = usbReader ?: return@Thread
             try {
                 while (true) {
                     val msg = reader.recv()
-                    if (msg.type == Packet.PING) {
-                        writer.send(Packet.HELLO, helloBytes("", "", true))
-                        continue
+                    if (msg.type == Packet.TOUCH) {
+                        val (action, x, y) = Touch.decode(msg.payload)
+                        onTouch?.invoke(action, x, y)
                     }
-                    if (msg.type == Packet.REJECT) {
-                        onClosed?.invoke(JSONObject(String(msg.payload, Charsets.UTF_8)).optString("reason", "连接被拒绝"))
-                        return@Thread
-                    }
-                    if (msg.type != Packet.WELCOME) continue
-                    val welcome = JSONObject(String(msg.payload, Charsets.UTF_8))
-                    onReady?.invoke(welcome.getString("token"), welcome.optString("carId"), pfd.dup())
-                    readTouches(reader)
-                    return@Thread
                 }
-            } catch (e: Exception) {
-                onClosed?.invoke(e.message ?: "USB 断开")
+            } catch (_: Exception) {
             }
         }.start()
     }

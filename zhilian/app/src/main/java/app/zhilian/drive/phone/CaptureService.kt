@@ -47,6 +47,8 @@ class CaptureService : Service() {
     private var usb: ParcelFileDescriptor? = null
     private var audioRecord: AudioRecord? = null
     private var savedVolume = -1
+    private var intentDevice = ""
+    private var intentName = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -54,6 +56,8 @@ class CaptureService : Service() {
         startInForeground()
         val code = intent?.getIntExtra(EXTRA_CODE, 0) ?: 0
         val data = projectionData(intent)
+        intentDevice = intent?.getStringExtra(EXTRA_DEVICE) ?: ""
+        intentName = intent?.getStringExtra(EXTRA_NAME) ?: "手机"
         val host = intent?.getStringExtra(EXTRA_HOST)
         val token = intent?.getStringExtra(EXTRA_TOKEN)
         val port = intent?.getIntExtra(EXTRA_PORT, Packet.VIDEO_PORT) ?: Packet.VIDEO_PORT
@@ -113,7 +117,17 @@ class CaptureService : Service() {
 
     private fun attach(code: Int, data: Intent, host: String?, port: Int, token: String) {
         val out = if (usb != null) {
-            PacketWriter(FileOutputStream(usb!!.fileDescriptor))
+            val writer = PacketWriter(FileOutputStream(usb!!.fileDescriptor))
+            val hello = org.json.JSONObject()
+                .put("deviceId", intentDevice)
+                .put("name", intentName)
+                .put("pin", "")
+                .put("token", "")
+                .put("usb", true)
+                .toString()
+                .toByteArray()
+            writer.send(Packet.HELLO, hello)
+            writer
         } else {
             val sock = Socket()
             sock.tcpNoDelay = true
@@ -294,16 +308,30 @@ class CaptureService : Service() {
         const val EXTRA_PORT = "port"
         const val EXTRA_TOKEN = "token"
         const val EXTRA_USB = "usb"
+        const val EXTRA_DEVICE = "device"
+        const val EXTRA_NAME = "phoneName"
         private const val CHANNEL = "zhilian-capture"
         private const val MIME = "video/avc"
 
-        fun start(context: Context, code: Int, data: Intent, host: String?, port: Int, token: String, usb: ParcelFileDescriptor?) {
+        fun start(
+            context: Context,
+            code: Int,
+            data: Intent,
+            host: String?,
+            port: Int,
+            token: String,
+            usb: ParcelFileDescriptor?,
+            deviceId: String,
+            phoneName: String,
+        ) {
             val intent = Intent(context, CaptureService::class.java)
             intent.putExtra(EXTRA_CODE, code)
             intent.putExtra(EXTRA_DATA, data)
             intent.putExtra(EXTRA_HOST, host)
             intent.putExtra(EXTRA_PORT, port)
             intent.putExtra(EXTRA_TOKEN, token)
+            intent.putExtra(EXTRA_DEVICE, deviceId)
+            intent.putExtra(EXTRA_NAME, phoneName)
             if (usb != null) intent.putExtra(EXTRA_USB, usb)
             if (Build.VERSION.SDK_INT >= 26) {
                 context.startForegroundService(intent)
