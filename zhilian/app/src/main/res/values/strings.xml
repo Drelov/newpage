@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">直联</string>
+    <string name="role_hint">车机和手机都安装本应用。第一次输入车机上的连接码，之后自动连接。</string>
+    <string name="role_car">我是车机</string>
+    <string name="role_phone">我是手机</string>
+    <string name="booting">直联启动中…</string>
+    <string name="connecting">正在连接 %1$s</string>
+    <string name="car_hint">用数据线连接，或让手机和车机处在同一无线网络。\n手机打开直联，输入上面的连接码。</string>
+    <string name="retry">重连</string>
+    <string name="cancel">取消</string>
+    <string name="fail_title">连接初始化失败，你可以重连</string>
+    <string name="switch_role">切换手机 / 车机</string>
+    <string name="phone_wait">等待车机。同一 Wi-Fi 会自动发现，配对过的手机会自动连接。</string>
+    <string name="pin_hint">连接码</string>
+    <string name="host_hint">车机 IP，可留空</string>
+    <string name="connect">连接</string>
+    <string name="projecting">正在把画面送到车机</string>
+    <string name="need_access">请先打开直联的无障碍服务，用来在手机上执行车机触控</string>
+</resources>
