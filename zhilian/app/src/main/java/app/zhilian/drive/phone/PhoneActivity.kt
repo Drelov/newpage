@@ -50,6 +50,9 @@ class PhoneActivity : Activity() {
     private var scanner: BluetoothLeScanner? = null
     private var direct: WifiP2pManager.Channel? = null
     private var lastBle = 0L
+    private var wantDirect = false
+    private var directPin = ""
+    private var directToken = ""
     private val noopDirect = object : WifiP2pManager.ActionListener {
         override fun onSuccess() {}
         override fun onFailure(reason: Int) {}
@@ -104,7 +107,19 @@ class PhoneActivity : Activity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
+        if (intent != null) setIntent(intent)
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) openAccessory(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (linking) return
+        val usb = getSystemService(UsbManager::class.java) ?: return
+        val accessory = usb.accessoryList?.firstOrNull() ?: return
+        val fd = usb.openAccessory(accessory) ?: return
+        linking = true
+        status.text = "USB 已连接"
+        link.connectUsb(fd, pin.text?.toString()?.trim().orEmpty(), vault.savedCar()?.token ?: "")
     }
 
     override fun onDestroy() {
@@ -145,12 +160,22 @@ class PhoneActivity : Activity() {
             }
             else -> null
         }
+        val saved = vault.savedCar()
+        val token = if (saved != null && (saved.carId == target?.id || typed.isNotEmpty())) saved.token else ""
         if (target == null) {
-            status.text = "还没有发现车机。请把两端连到同一 Wi-Fi，或插上数据线。"
+            wantDirect = true
+            directPin = pin.text?.toString()?.trim().orEmpty()
+            directToken = token
+            status.text = "没有连到同一个热点。正在加入车机自己的无线，请稍等。"
+            try {
+                val mgr = getSystemService(WifiP2pManager::class.java)
+                val channel = direct
+                if (mgr != null && channel != null) mgr.discoverPeers(channel, noopDirect)
+            } catch (_: SecurityException) {
+                status.text = "请允许附近设备或位置权限，才能不用同一个热点连接。"
+            }
             return
         }
-        val saved = vault.savedCar()
-        val token = if (saved != null && (saved.carId == target.id || typed.isNotEmpty())) saved.token else ""
         linking = true
         projecting = false
         status.text = "正在连接。模拟器会改由车机来连手机。"
@@ -163,7 +188,7 @@ class PhoneActivity : Activity() {
 
     private fun friendly(reason: String): String {
         if (reason.contains("ECONNREFUSED") || reason.contains("Connection refused")) {
-            return "手机连不进模拟器。请把模拟器里的直联也换成新版本，再点一次连接。"
+            return "连不上这个地址。请看车机屏幕上的地址，填到手机地址栏；或点连接，让手机加入车机自己的无线。"
         }
         return reason
     }
@@ -219,14 +244,33 @@ class PhoneActivity : Activity() {
         direct = channel
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action != WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION) return
-                mgr.requestPeers(channel) { peers ->
-                    val match = peers.deviceList.firstOrNull { it.deviceName?.startsWith("直联") == true }
-                    if (match != null) mgr.connect(channel, CarHostBridge.config(match), noopDirect)
+                when (intent?.action) {
+                    WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> mgr.requestPeers(channel) { peers ->
+                        val match = peers.deviceList.firstOrNull { it.deviceName?.startsWith("直联") == true }
+                            ?: if (wantDirect) peers.deviceList.firstOrNull() else null
+                        if (match != null) mgr.connect(channel, CarHostBridge.config(match), noopDirect)
+                    }
+                    WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
+                        val info = if (Build.VERSION.SDK_INT >= 33) {
+                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, android.net.wifi.p2p.WifiP2pInfo::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO)
+                        } ?: return
+                        val address = info.groupOwnerAddress?.hostAddress ?: return
+                        if (!info.groupFormed || info.isGroupOwner || linking) return
+                        wantDirect = false
+                        linking = true
+                        status.text = "已加入车机无线，正在连接"
+                        connect(PhoneLink.FoundCar("direct", "直联", address, Packet.CONTROL_PORT), directPin, directToken)
+                    }
                 }
             }
         }
-        val filter = IntentFilter(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+        val filter = IntentFilter().apply {
+            addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+        }
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
         } else {

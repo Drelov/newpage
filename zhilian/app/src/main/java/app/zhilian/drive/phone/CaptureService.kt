@@ -4,6 +4,11 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioPlaybackCaptureConfiguration
+import android.media.AudioRecord
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -40,6 +45,8 @@ class CaptureService : Service() {
     private var writer: PacketWriter? = null
     private var socket: Socket? = null
     private var usb: ParcelFileDescriptor? = null
+    private var audioRecord: AudioRecord? = null
+    private var savedVolume = -1
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -89,6 +96,18 @@ class CaptureService : Service() {
             usb?.close()
         } catch (_: Exception) {
         }
+        try {
+            audioRecord?.stop()
+        } catch (_: Exception) {
+        }
+        audioRecord?.release()
+        if (savedVolume >= 0) {
+            try {
+                getSystemService(AudioManager::class.java)
+                    .setStreamVolume(AudioManager.STREAM_MUSIC, savedVolume, 0)
+            } catch (_: Exception) {
+            }
+        }
         super.onDestroy()
     }
 
@@ -130,6 +149,7 @@ class CaptureService : Service() {
             null,
             null,
         )
+        startAudio(out)
         val info = MediaCodec.BufferInfo()
         while (true) {
             val index = codec.dequeueOutputBuffer(info, 10_000)
@@ -149,6 +169,46 @@ class CaptureService : Service() {
                 out.send(Packet.VIDEO, VideoFrame.encode(flags, width, height, bytes))
             }
             codec.releaseOutputBuffer(index, false)
+        }
+    }
+
+    private fun startAudio(out: PacketWriter) {
+        if (Build.VERSION.SDK_INT < 29) return
+        val mp = projection ?: return
+        try {
+            val config = AudioPlaybackCaptureConfiguration.Builder(mp)
+                .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+                .addMatchingUsage(AudioAttributes.USAGE_GAME)
+                .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+                .build()
+            val format = AudioFormat.Builder()
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .setSampleRate(48000)
+                .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
+                .build()
+            val rec = AudioRecord.Builder()
+                .setAudioFormat(format)
+                .setBufferSizeInBytes(3840 * 4)
+                .setAudioPlaybackCaptureConfig(config)
+                .build()
+            audioRecord = rec
+            rec.startRecording()
+            val am = getSystemService(AudioManager::class.java)
+            savedVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+            thread(name = "zl-audio") {
+                val buf = ByteArray(3840)
+                while (true) {
+                    val n = rec.read(buf, 0, buf.size)
+                    if (n <= 0) break
+                    try {
+                        out.send(Packet.AUDIO, buf.copyOf(n))
+                    } catch (_: Exception) {
+                        break
+                    }
+                }
+            }
+        } catch (_: Exception) {
         }
     }
 

@@ -14,6 +14,7 @@ object Packet {
     const val PING = 6
     const val PONG = 7
     const val BYE = 8
+    const val AUDIO = 9
 
     const val FLAG_CONFIG = 1
     const val FLAG_KEY = 2

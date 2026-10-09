@@ -44,6 +44,7 @@ class CarHost(
     private val vault: Vault,
     private val ui: CarUi,
     private val decoder: H264Decoder,
+    private val requestUsb: (android.hardware.usb.UsbDevice) -> Unit,
 ) {
     interface CarUi {
         fun showPin(pin: String)
@@ -59,6 +60,8 @@ class CarHost(
     @Volatile private var activeToken: String = ""
     @Volatile private var writer: PacketWriter? = null
     private val running = AtomicBoolean(false)
+    private val speaker = CarSpeaker()
+    private val usbAsked = HashSet<String>()
     private var control: ServerSocket? = null
     private var video: ServerSocket? = null
     private var beacon: DatagramSocket? = null
@@ -84,6 +87,7 @@ class CarHost(
         running.set(false)
         writer = null
         decoder.release()
+        speaker.stop()
         closeQuiet(control)
         closeQuiet(video)
         closeQuiet(beacon)
@@ -155,6 +159,7 @@ class CarHost(
                 when (msg.type) {
                     Packet.PING -> out?.send(Packet.PONG, ByteArray(0))
                     Packet.VIDEO -> feed(msg.payload)
+                    Packet.AUDIO -> speaker.write(msg.payload)
                     Packet.BYE -> break
                 }
             }
@@ -168,6 +173,7 @@ class CarHost(
             if (writer === out) {
                 writer = null
                 decoder.release()
+                speaker.stop()
                 ui.showPin(pin)
             }
         }
@@ -356,16 +362,23 @@ class CarHost(
     private fun usbLoop() {
         val usb = context.getSystemService(UsbManager::class.java) ?: return
         while (running.get()) {
-            val device = usb.deviceList.values.firstOrNull { candidate(it) }
-            if (device != null && usb.hasPermission(device)) {
+            val all = usb.deviceList.values.toList()
+            if (all.isNotEmpty()) {
+                ui.showStatus("已插入 USB：" + all.joinToString { it.productName ?: it.deviceName })
+            }
+            for (device in all) {
+                if (!candidate(device)) continue
+                if (!usb.hasPermission(device)) {
+                    if (usbAsked.add(device.deviceName)) requestUsb(device)
+                    ui.showStatus("请在车机上允许使用 USB")
+                    continue
+                }
                 try {
-                    if (isAccessory(device)) {
-                        openAccessory(usb, device)
-                    } else {
-                        switchToAccessory(usb, device)
-                    }
+                    ui.showStatus(if (isAccessory(device)) "USB 已进入直联模式" else "正在让手机打开直联")
+                    if (isAccessory(device)) openAccessory(usb, device) else switchToAccessory(usb, device)
                 } catch (e: Exception) {
                     Log.i(TAG, "usb ${e.message}")
+                    ui.showStatus("USB 失败：" + (e.message ?: "未知"))
                 }
             }
             try {
@@ -378,11 +391,9 @@ class CarHost(
 
     private fun candidate(device: UsbDevice): Boolean {
         if (isAccessory(device)) return true
-        for (i in 0 until device.interfaceCount) {
-            val cls = device.getInterface(i).interfaceClass
-            if (cls == UsbConstants.USB_CLASS_VENDOR_SPEC || cls == UsbConstants.USB_CLASS_STILL_IMAGE) return true
-        }
-        return false
+        if (device.deviceClass == UsbConstants.USB_CLASS_HUB) return false
+        if (device.deviceClass == UsbConstants.USB_CLASS_HID) return false
+        return true
     }
 
     private fun isAccessory(device: UsbDevice): Boolean {
@@ -436,6 +447,7 @@ class CarHost(
                 val msg = reader.recv()
                 when (msg.type) {
                     Packet.VIDEO -> feed(msg.payload)
+                    Packet.AUDIO -> speaker.write(msg.payload)
                     Packet.PING -> out.send(Packet.PONG, ByteArray(0))
                     Packet.BYE -> break
                 }
@@ -443,6 +455,7 @@ class CarHost(
         } finally {
             writer = null
             decoder.release()
+            speaker.stop()
             try {
                 conn.releaseInterface(intf)
                 conn.close()
@@ -542,11 +555,16 @@ class CarHost(
         }
 
         override fun read(b: ByteArray, off: Int, length: Int): Int {
-            if (pos >= len) {
-                val n = conn.bulkTransfer(ep, buf, buf.size, 800)
-                if (n <= 0) return -1
-                pos = 0
-                len = n
+            var misses = 0
+            while (pos >= len) {
+                val n = conn.bulkTransfer(ep, buf, buf.size, 1500)
+                if (n > 0) {
+                    pos = 0
+                    len = n
+                    break
+                }
+                misses += 1
+                if (misses > 20) return -1
             }
             val n = minOf(length, len - pos)
             buf.copyInto(b, off, pos, pos + n)

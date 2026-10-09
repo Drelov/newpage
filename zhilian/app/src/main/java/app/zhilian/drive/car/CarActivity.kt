@@ -29,7 +29,9 @@ class CarActivity : Activity(), CarHost.CarUi {
     private lateinit var actions: View
     private lateinit var title: TextView
     private lateinit var hint: TextView
+    private lateinit var videoView: SurfaceView
     private val digits = ArrayList<TextView>()
+    private var lastStatus = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +50,7 @@ class CarActivity : Activity(), CarHost.CarUi {
         digits.add(findViewById(R.id.d4))
         digits.add(findViewById(R.id.d5))
         val video = findViewById<SurfaceView>(R.id.video)
+        videoView = video
         decoder = H264Decoder()
         video.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
@@ -85,12 +88,18 @@ class CarActivity : Activity(), CarHost.CarUi {
             startActivity(Intent(this, RoleActivity::class.java))
             finish()
         }
-        host = CarHost(this, Vault(this), this, decoder)
+        host = CarHost(this, Vault(this), this, decoder) { device -> askUsb(device) }
         host.start()
-        askUsb()
+        registerUsb()
+        askUsb(null)
+        showStatus(localAddresses())
     }
 
     override fun onDestroy() {
+        try {
+            unregisterReceiver(usbReceiver)
+        } catch (_: Exception) {
+        }
         host.stop()
         super.onDestroy()
     }
@@ -106,6 +115,7 @@ class CarActivity : Activity(), CarHost.CarUi {
     }
 
     override fun showVideo() = runOnUi {
+        videoView.visibility = View.VISIBLE
         panel.visibility = View.GONE
     }
 
@@ -118,9 +128,8 @@ class CarActivity : Activity(), CarHost.CarUi {
     }
 
     override fun showStatus(text: String) = runOnUi {
-        if (panel.visibility == View.VISIBLE && pinRow.visibility == View.VISIBLE) {
-            hint.text = text + "\n" + getString(R.string.car_hint)
-        }
+        lastStatus = text
+        if (panel.visibility == View.VISIBLE) refreshHint()
     }
 
     private fun paintPin(pin: String, failed: Boolean) {
@@ -128,7 +137,8 @@ class CarActivity : Activity(), CarHost.CarUi {
         pinRow.visibility = View.VISIBLE
         actions.visibility = if (failed) View.VISIBLE else View.GONE
         title.text = if (failed) getString(R.string.fail_title) else getString(R.string.app_name)
-        hint.text = getString(R.string.car_hint)
+        videoView.visibility = View.GONE
+        refreshHint()
         pin.forEachIndexed { index, ch ->
             if (index < digits.size) digits[index].text = ch.toString()
         }
@@ -138,16 +148,57 @@ class CarActivity : Activity(), CarHost.CarUi {
         runOnUiThread(block)
     }
 
-    private fun askUsb() {
-        val usb = getSystemService(UsbManager::class.java) ?: return
-        val flags = if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_IMMUTABLE else 0
-        val pi = PendingIntent.getBroadcast(this, 1, Intent(ACTION_USB), flags)
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {}
-            }, IntentFilter(ACTION_USB), RECEIVER_NOT_EXPORTED)
+    private fun refreshHint() {
+        hint.text = listOf(lastStatus, localAddresses(), getString(R.string.car_hint))
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
+    }
+
+    private fun localAddresses(): String {
+        val ips = ArrayList<String>()
+        try {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces() ?: return ""
+            while (interfaces.hasMoreElements()) {
+                val nif = interfaces.nextElement()
+                if (!nif.isUp || nif.isLoopback) continue
+                val addresses = nif.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    if (addr is java.net.Inet4Address) ips.add(addr.hostAddress ?: "")
+                }
+            }
+        } catch (_: Exception) {
         }
-        for (device in usb.deviceList.values) {
+        return if (ips.isEmpty()) "" else "车机地址 " + ips.joinToString("  ")
+    }
+
+    private fun registerUsb() {
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(ACTION_USB)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(usbReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(usbReceiver, filter)
+        }
+    }
+
+    private val usbReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            askUsb(null)
+            showStatus("USB 状态已更新")
+        }
+    }
+
+    private fun askUsb(only: android.hardware.usb.UsbDevice?) {
+        val usb = getSystemService(UsbManager::class.java) ?: return
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
+        val pi = PendingIntent.getBroadcast(this, 1, Intent(ACTION_USB), flags)
+        val devices = if (only != null) listOf(only) else usb.deviceList.values
+        for (device in devices) {
             if (!usb.hasPermission(device)) usb.requestPermission(device, pi)
         }
     }
