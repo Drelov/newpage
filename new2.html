@@ -1272,15 +1272,15 @@
         <section class="search-section">
             <h2 class="search-title">快速搜索</h2>
             <p class="search-hint">输入时筛选收藏，回车使用搜索引擎</p>
-            <div class="search-container">
+            <form class="search-container" id="bookmarkSearchForm" role="search" autocomplete="off">
                 <button class="engine-switch-btn" id="engineSwitchBtn" type="button" title="切换搜索引擎" aria-label="切换搜索引擎">
                     <span id="engineLabel" class="engine-label">Bing</span>
                 </button>
-                <input type="text" class="search-input" id="searchInput" placeholder="搜索收藏或网页..." autocomplete="off">
-                <button class="search-icon" id="searchBtn" type="button" title="网页搜索">
+                <input type="search" class="search-input" id="searchInput" name="bookmark-query" placeholder="搜索收藏或网页..." aria-label="搜索收藏或网页" autocomplete="off">
+                <button class="search-icon" id="searchBtn" type="submit" title="网页搜索">
                     <i class="fas fa-search"></i>
                 </button>
-            </div>
+            </form>
         </section>
 
         <section class="url-section">
@@ -1376,19 +1376,22 @@
                             <p class="logged-in-hint" id="loggedInHint">访问令牌只在本标签页会话中（刷新可保持登录），本机只保留加密保险柜。</p>
                             <details class="account-settings" id="accountSettings">
                                 <summary>修改密码或更换令牌</summary>
-                                <label class="field-label" for="accountCurrentPassword">当前本站密码</label>
-                                <input type="password" class="storage-input" id="accountCurrentPassword" placeholder="验证当前密码" autocomplete="current-password" spellcheck="false">
-                                <label class="field-label" for="accountNewPassword">新本站密码（可选）</label>
-                                <input type="password" class="storage-input" id="accountNewPassword" placeholder="不改密码请留空" autocomplete="new-password" spellcheck="false">
-                                <label class="field-label" for="accountNewPasswordConfirm">确认新密码</label>
-                                <input type="password" class="storage-input" id="accountNewPasswordConfirm" placeholder="与新密码一致" autocomplete="new-password" spellcheck="false">
-                                <label class="field-label" for="accountNewToken">新的个人访问令牌（可选）</label>
-                                <input type="password" class="storage-input" id="accountNewToken" placeholder="不换令牌请留空" autocomplete="off" spellcheck="false">
-                                <div class="btn-group">
-                                    <button class="action-btn save-btn" id="updateAccountBtn" type="button">
-                                        <i class="fas fa-key"></i> 保存账号更改
-                                    </button>
-                                </div>
+                                <form id="accountSettingsForm" autocomplete="on">
+                                    <input type="text" id="accountSettingsUsername" name="username" autocomplete="username" hidden>
+                                    <label class="field-label" for="accountCurrentPassword">当前本站密码</label>
+                                    <input type="password" class="storage-input" id="accountCurrentPassword" name="current-password" placeholder="验证当前密码" autocomplete="current-password" spellcheck="false">
+                                    <label class="field-label" for="accountNewPassword">新本站密码（可选）</label>
+                                    <input type="password" class="storage-input" id="accountNewPassword" name="new-password" placeholder="不改密码请留空" autocomplete="new-password" spellcheck="false">
+                                    <label class="field-label" for="accountNewPasswordConfirm">确认新密码</label>
+                                    <input type="password" class="storage-input" id="accountNewPasswordConfirm" name="new-password-confirmation" placeholder="与新密码一致" autocomplete="new-password" spellcheck="false">
+                                    <label class="field-label" for="accountNewToken">新的个人访问令牌（可选）</label>
+                                    <input type="password" class="storage-input" id="accountNewToken" name="github-pat-replacement" placeholder="不换令牌请留空" autocomplete="off" spellcheck="false">
+                                    <div class="btn-group">
+                                        <button class="action-btn save-btn" id="updateAccountBtn" type="submit">
+                                            <i class="fas fa-key"></i> 保存账号更改
+                                        </button>
+                                    </div>
+                                </form>
                             </details>
                         </div>
 
@@ -1637,6 +1640,8 @@
                 contextMenu: document.getElementById('contextMenu'),
                 folderMenu: document.getElementById('folderMenu'),
                 importFile: document.getElementById('importFile'),
+                accountSettingsForm: document.getElementById('accountSettingsForm'),
+                accountSettingsUsername: document.getElementById('accountSettingsUsername'),
                 accountCurrentPassword: document.getElementById('accountCurrentPassword'),
                 accountNewPassword: document.getElementById('accountNewPassword'),
                 accountNewPasswordConfirm: document.getElementById('accountNewPasswordConfirm'),
@@ -2061,6 +2066,7 @@
 
             function updateAuthUI() {
                 const loggedIn = !!state.githubToken;
+                if (els.accountSettingsUsername) els.accountSettingsUsername.value = state.githubUsername;
                 if (els.loginCredentials) els.loginCredentials.hidden = loggedIn;
                 if (els.loginButtonRow) els.loginButtonRow.hidden = loggedIn;
                 if (els.loggedInPanel) els.loggedInPanel.hidden = !loggedIn;
@@ -3457,11 +3463,11 @@
             }
 
             function setupEventListeners() {
-                document.getElementById('searchBtn').addEventListener('click', searchWeb);
-                els.searchInput.addEventListener('input', filterBookmarksFromSearch);
-                els.searchInput.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') searchWeb();
+                document.getElementById('bookmarkSearchForm').addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    searchWeb();
                 });
+                els.searchInput.addEventListener('input', filterBookmarksFromSearch);
                 document.getElementById('engineSwitchBtn').addEventListener('click', toggleSearchEngine);
                 document.getElementById('addUrlBtn').addEventListener('click', () => {
                     populateFolderSelect('urlFolder', state.currentFolder === '全部' || state.currentFolder === '星标' || state.currentFolder === '未分类' ? '' : state.currentFolder);
@@ -3486,7 +3492,10 @@
                     els.showRegisterModeBtn.addEventListener('click', () => setAuthMode('register'));
                 }
                 document.getElementById('logoutBtn').addEventListener('click', logout);
-                if (els.updateAccountBtn) els.updateAccountBtn.addEventListener('click', updateSiteAccount);
+                els.accountSettingsForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    updateSiteAccount();
+                });
                 document.getElementById('exportBtn').addEventListener('click', exportBackup);
                 document.getElementById('importBtn').addEventListener('click', () => els.importFile.click());
                 els.importFile.addEventListener('change', (event) => {
